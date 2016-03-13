@@ -1,12 +1,14 @@
 package main
 
 import (
-    "fmt"
-    "net/http"
-    "io/ioutil"
     "encoding/json"
+    "fmt"
+    "io/ioutil"
+    "net/http"
+    "net/http/cookiejar"
+    "net/url"
     "os"
-    "errors"
+    "regexp"
 )
 
 func parseJson(body []byte) map[string]interface{} {
@@ -17,10 +19,8 @@ func parseJson(body []byte) map[string]interface{} {
     return data
 }
 
-func getData(url string) map[string]interface{} {
-    var result map[string]interface{}
-
-    response, err := http.Get(url)
+func getData(client *http.Client, url string) []byte {
+    response, err := client.Get(url)
     if err != nil {
         fmt.Printf("%s", err)
         os.Exit(1)
@@ -31,56 +31,68 @@ func getData(url string) map[string]interface{} {
             fmt.Printf("%s\n", err)
             os.Exit(1)
         }
-        result = parseJson(body)
+        return body
     }
-    return result
+    return nil
 }
 
-func getAccessToken(clientId, clientSecret string) string {
-    data := getData("https://oauth.vk.com/access_token?client_id="+clientId+"&client_secret="+clientSecret+"&grant_type=client_credentials")
-    return data["access_token"].(string)
-}
+func getAccessToken(client *http.Client, clientId, email, pass string) string {
+    data := getData(client, "https://oauth.vk.com/authorize?client_id="+clientId+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=5.50&response_type=token")
 
-func getPosts(args ...interface{}) map[string]interface{} {
-    var err error
-    var domain string = ""
-    var count string = "10"
+    r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
+    match := r.FindStringSubmatch(string(data))
+    urlStr := match[1]
+    fmt.Println(urlStr)
 
-    for i, p := range args {
-        switch i {
-            case 0:
-                val, ok := p.(string)
-                if ok {
-                    domain = val
-                } else {
-                    err = errors.New("Parameter not type string.")
-                }
-            case 1:
-                val, ok := p.(string)
-                if ok {
-                    count = val
-                } else {
-                    err = errors.New("Parameter not type string.")
-                }
-            default:
-                err = errors.New("Wrong parameter count.")
-        }
+    r, _ = regexp.Compile("<input type=\"hidden\" name=\"(.*?)\" value=\"(.*?)\" ?/?>")
+    matches := r.FindAllStringSubmatch(string(data), -1)
+    fmt.Println(matches)
+
+    formData := url.Values{}
+    for _, val := range matches {
+        formData.Add(val[1], val[2])
     }
+    formData.Add("email", email)
+    formData.Add("pass", pass)
 
+    response, err := client.PostForm(urlStr, formData)
     if err != nil {
-        fmt.Println(err)
-        return nil
+        fmt.Printf("%s", err)
+        os.Exit(1)
+    } else {
+        r, _ = regexp.Compile("access_token=(.*?)&")
+        match = r.FindStringSubmatch(response.Request.URL.String())
+        return match[1]
     }
 
-    return getData("https://api.vk.com/method/wall.get?&domain="+domain+"&count="+count+"&filter=all")
+    return ""
+}
+
+func getPosts(client *http.Client, domain, count string) map[string]interface{} {
+    data := getData(client, "https://api.vk.com/method/wall.get?&domain="+domain+"&count="+count+"&filter=all")
+    return parseJson(data)
+}
+
+func doRepost(client *http.Client, object, groupId, accessToken string) map[string]interface{} {
+    data := getData(client, "https://api.vk.com/method/wall.repost?&object="+object+"&group_id="+groupId+"&access_token="+accessToken)
+    return parseJson(data)
 }
 
 func main() {
     clientId := os.Getenv("CLIENT_ID")
-    clientSecret := os.Getenv("CLIENT_SECRET")
-    accessToken := getAccessToken(clientId, clientSecret)
+    email := os.Getenv("CLIENT_EMAIL")
+    password := os.Getenv("CLIENT_PASSWORD")
+
+    cookieJar, _ := cookiejar.New(nil)
+    client := &http.Client{
+        Jar: cookieJar,
+    }
+    accessToken := getAccessToken(client, clientId, email, password)
     fmt.Printf("%s\n", accessToken)
 
-    posts := getPosts("smcat")
+    posts := getPosts(client, "smcat", "10")
     fmt.Println(posts)
+
+    status := doRepost(client, "wall85635407_3133", "", accessToken)
+    fmt.Println(status)
 }
