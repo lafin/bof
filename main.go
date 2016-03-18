@@ -11,42 +11,42 @@ import (
     "regexp"
 )
 
+const (
+    AUTH_URL = "https://oauth.vk.com"
+    API_URL = "https://api.vk.com"
+    API_VERSION = "5.50"
+)
+
 type Posts struct {
     Response struct {
         Count int `json:"count"`
         Items []struct {
             Attachments []struct {
-                Link struct {
-                    Caption     string `json:"caption"`
-                    Description string `json:"description"`
-                    IsExternal  int    `json:"is_external"`
-                    Photo       struct {
-                        AlbumID  int    `json:"album_id"`
-                        Date     int    `json:"date"`
-                        Height   int    `json:"height"`
-                        ID       int    `json:"id"`
-                        OwnerID  int    `json:"owner_id"`
-                        Photo130 string `json:"photo_130"`
-                        Photo604 string `json:"photo_604"`
-                        Photo75  string `json:"photo_75"`
-                        Text     string `json:"text"`
-                        Width    int    `json:"width"`
-                    } `json:"photo"`
-                    PreviewPage string `json:"preview_page"`
-                    PreviewURL  string `json:"preview_url"`
-                    Title       string `json:"title"`
-                    URL         string `json:"url"`
-                } `json:"link"`
+                Photo struct {
+                    AccessKey string `json:"access_key"`
+                    AlbumID   int    `json:"album_id"`
+                    Date      int    `json:"date"`
+                    Height    int    `json:"height"`
+                    ID        int    `json:"id"`
+                    OwnerID   int    `json:"owner_id"`
+                    Photo130  string `json:"photo_130"`
+                    Photo604  string `json:"photo_604"`
+                    Photo75   string `json:"photo_75"`
+                    Text      string `json:"text"`
+                    UserID    int    `json:"user_id"`
+                    Width     int    `json:"width"`
+                } `json:"photo"`
                 Type string `json:"type"`
             } `json:"attachments"`
             Comments struct {
                 CanPost int `json:"can_post"`
                 Count   int `json:"count"`
             } `json:"comments"`
-            Date   int `json:"date"`
-            FromID int `json:"from_id"`
-            ID     int `json:"id"`
-            Likes  struct {
+            Date     int `json:"date"`
+            FromID   int `json:"from_id"`
+            ID       int `json:"id"`
+            IsPinned int `json:"is_pinned"`
+            Likes    struct {
                 CanLike    int `json:"can_like"`
                 CanPublish int `json:"can_publish"`
                 Count      int `json:"count"`
@@ -75,14 +75,6 @@ type Repost struct {
     } `json:"response"`
 }
 
-func parseJson(body []byte) map[string]interface{} {
-    var data map[string]interface{}
-    if err := json.Unmarshal(body, &data); err != nil {
-        panic(err)
-    }
-    return data
-}
-
 func getData(client *http.Client, url string) []byte {
     response, err := client.Get(url)
     if err != nil {
@@ -101,7 +93,7 @@ func getData(client *http.Client, url string) []byte {
 }
 
 func getAccessToken(client *http.Client, clientId, email, pass string) string {
-    data := getData(client, "https://oauth.vk.com/authorize?client_id="+clientId+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=5.50&response_type=token")
+    data := getData(client, AUTH_URL+"/authorize?client_id="+clientId+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v="+API_VERSION)
 
     r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
     match := r.FindStringSubmatch(string(data))
@@ -132,14 +124,24 @@ func getAccessToken(client *http.Client, clientId, email, pass string) string {
     return ""
 }
 
-func getPosts(client *http.Client, domain, count string) map[string]interface{} {
-    data := getData(client, "https://api.vk.com/method/wall.get?&domain="+domain+"&count="+count+"&filter=all")
-    return parseJson(data)
+func getPosts(client *http.Client, domain, count string) *Posts {
+    data := getData(client, API_URL+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+API_VERSION)
+
+    var posts Posts
+    if err := json.Unmarshal(data, &posts); err != nil {
+        panic(err)
+    }
+    return &posts
 }
 
-func doRepost(client *http.Client, object, groupId, accessToken string) map[string]interface{} {
-    data := getData(client, "https://api.vk.com/method/wall.repost?&object="+object+"&group_id="+groupId+"&access_token="+accessToken)
-    return parseJson(data)
+func doRepost(client *http.Client, object, groupId, accessToken string) *Repost {
+    data := getData(client, API_URL+"/method/wall.repost?&object="+object+"&group_id="+groupId+"&access_token="+accessToken+"&v="+API_VERSION)
+
+    var repost Repost
+    if err := json.Unmarshal(data, &repost); err != nil {
+        panic(err)
+    }
+    return &repost
 }
 
 func main() {
@@ -155,8 +157,8 @@ func main() {
     fmt.Printf("%s\n", accessToken)
 
     posts := getPosts(client, "smcat", "10")
-    fmt.Println(posts)
+    fmt.Println(posts.Response.Items)
 
-    status := doRepost(client, "wall85635407_3133", "", accessToken)
-    fmt.Println(status)
+    repost := doRepost(client, "wall85635407_3133", "", accessToken)
+    fmt.Println(repost.Response.Success)
 }
