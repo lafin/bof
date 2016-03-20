@@ -3,12 +3,16 @@ package main
 import (
 	"encoding/json"
 	"fmt"
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"io/ioutil"
+	"log"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"os"
 	"regexp"
+	"time"
 )
 
 const (
@@ -144,10 +148,55 @@ func doRepost(client *http.Client, object, groupId, accessToken string) *Repost 
 	return &repost
 }
 
+type Record struct {
+	Post  string
+	Group string
+	Date  time.Time
+}
+
+func connectToDb(dbServerAddress string) *mgo.Collection {
+	session, err := mgo.Dial(dbServerAddress)
+	if err != nil {
+		panic(err)
+	}
+	defer session.Close()
+
+	session.SetMode(mgo.Monotonic, true)
+	c := session.DB("bof").C("message")
+
+	duration, _ := time.ParseDuration("30d")
+	index := mgo.Index{
+		Key:         []string{"Post"},
+		Unique:      true,
+		ExpireAfter: duration,
+	}
+	err = c.EnsureIndex(index)
+	if err != nil {
+		panic(err)
+	}
+
+	return c
+}
+
 func main() {
 	clientId := os.Getenv("CLIENT_ID")
 	email := os.Getenv("CLIENT_EMAIL")
 	password := os.Getenv("CLIENT_PASSWORD")
+	dbServerAddress := os.Getenv("DB_SERVER")
+
+	c := connectToDb(dbServerAddress)
+	err := c.Insert(&Record{"message id", "group id", time.Now()})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	result := Record{}
+	err = c.Find(bson.M{"Post": "message id"}).One(&result)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Post:", result.Post)
 
 	cookieJar, _ := cookiejar.New(nil)
 	client := &http.Client{
@@ -164,6 +213,6 @@ func main() {
 		}
 	}
 
-	repost := doRepost(client, "wall1_148582", "117456732", accessToken)
-	fmt.Println(repost.Response.Success)
+	// repost := doRepost(client, "wall1_148582", "117456732", accessToken)
+	// fmt.Println(repost.Response.Success)
 }
