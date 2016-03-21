@@ -12,6 +12,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 	"time"
 )
 
@@ -21,7 +22,7 @@ const (
 	ApiVersion = "5.50"
 )
 
-type Posts struct {
+type Post struct {
 	Response struct {
 		Count int `json:"count"`
 		Items []struct {
@@ -128,10 +129,10 @@ func getAccessToken(client *http.Client, clientId, email, pass string) string {
 	return ""
 }
 
-func getPosts(client *http.Client, domain, count string) *Posts {
+func getPosts(client *http.Client, domain, count string) *Post {
 	data := getData(client, ApiUrl+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+ApiVersion)
 
-	var posts Posts
+	var posts Post
 	if err := json.Unmarshal(data, &posts); err != nil {
 		panic(err)
 	}
@@ -148,21 +149,30 @@ func doRepost(client *http.Client, object, groupId, accessToken string) *Repost 
 	return &repost
 }
 
-type Record struct {
+type PostRecord struct {
 	Post  string
-	Group string
+	Group int
 	Date  time.Time
 }
 
-func connectToDb(dbServerAddress string) *mgo.Collection {
+type GroupRecord struct {
+	Id   int
+	Type string
+	Name string
+}
+
+func connect(dbServerAddress string) *mgo.Session {
 	session, err := mgo.Dial(dbServerAddress)
 	if err != nil {
 		panic(err)
 	}
-	defer session.Close()
-
 	session.SetMode(mgo.Monotonic, true)
-	c := session.DB("bof").C("message")
+
+	return session
+}
+
+func messageQuery(session *mgo.Session) *mgo.Collection {
+	connect := session.DB("bof").C("message")
 
 	duration, _ := time.ParseDuration("30d")
 	index := mgo.Index{
@@ -170,12 +180,63 @@ func connectToDb(dbServerAddress string) *mgo.Collection {
 		Unique:      true,
 		ExpireAfter: duration,
 	}
-	err = c.EnsureIndex(index)
+	err := connect.EnsureIndex(index)
 	if err != nil {
 		panic(err)
 	}
 
-	return c
+	return connect
+}
+
+func groupQuery(session *mgo.Session) *mgo.Collection {
+	connect := session.DB("bof").C("group")
+
+	index := mgo.Index{
+		Key:    []string{"Type", "Name"},
+		Unique: true,
+	}
+	err := connect.EnsureIndex(index)
+	if err != nil {
+		panic(err)
+	}
+
+	return connect
+}
+
+func addGroup(session *mgo.Session, typeGroup string, nameGroup string, id int) {
+	group := groupQuery(session)
+	group.Insert(&GroupRecord{id, typeGroup, nameGroup})
+}
+
+func getGroups(session *mgo.Session) []GroupRecord {
+	group := groupQuery(session)
+	records := []GroupRecord{}
+
+	err := group.Find(nil).All(&records)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return records
+}
+
+func getClient() *http.Client {
+	cookieJar, _ := cookiejar.New(nil)
+	client := &http.Client{
+		Jar: cookieJar,
+	}
+	return client
+}
+
+func tryDoRepost(session *mgo.Session, post string, group int) {
+	message := messageQuery(session)
+	record := PostRecord{}
+	err := message.Find(bson.M{"post": post}).One(&record)
+	if err != nil {
+		err = message.Insert(&PostRecord{post, group, time.Now()})
+		if err != nil {
+			log.Fatal(err)
+		}
+	}
 }
 
 func main() {
@@ -184,35 +245,26 @@ func main() {
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
 
-	c := connectToDb(dbServerAddress)
-	err := c.Insert(&Record{"message id", "group id", time.Now()})
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	result := Record{}
-	err = c.Find(bson.M{"Post": "message id"}).One(&result)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	fmt.Println("Post:", result.Post)
-
-	cookieJar, _ := cookiejar.New(nil)
-	client := &http.Client{
-		Jar: cookieJar,
-	}
+	client := getClient()
 	accessToken := getAccessToken(client, clientId, email, password)
 	fmt.Printf("%s\n", accessToken)
 
-	posts := getPosts(client, "smcat", "50")
-	items := posts.Response.Items
-	for _, val := range items {
-		if val.IsPinned == 0 {
-			fmt.Println(val.Date, val.Likes.Count, val.Text)
+	session := connect(dbServerAddress)
+	groups := getGroups(session)
+
+	for _, group := range groups {
+		posts := getPosts(client, group.Name, "50")
+		items := posts.Response.Items
+
+		for _, val := range items {
+			if val.IsPinned == 0 {
+				fmt.Println("wall"+"1"+"_"+strconv.Itoa(val.ID), val.Date, val.Likes.Count, val.Text)
+			}
 		}
 	}
 
 	// repost := doRepost(client, "wall1_148582", "117456732", accessToken)
 	// fmt.Println(repost.Response.Success)
+
+	defer session.Close()
 }
