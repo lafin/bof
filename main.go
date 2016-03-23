@@ -44,6 +44,17 @@ func tryDoRepost(session *mgo.Session, client *http.Client, postId string, from,
 	}
 }
 
+func getMaxCountLikes(posts *api.Post) float32 {
+	max := 0
+	items := posts.Response.Items
+	for _, val := range items {
+		if val.Likes.Count > max && val.IsPinned == 0 {
+			max = val.Likes.Count
+		}
+	}
+	return float32(max)
+}
+
 func main() {
 	clientId := os.Getenv("CLIENT_ID")
 	email := os.Getenv("CLIENT_EMAIL")
@@ -59,10 +70,10 @@ func main() {
 
 	for _, group := range groups {
 		posts := api.GetPosts(client, group.Name, "50")
+		border := int(getMaxCountLikes(posts) / 2.0 * 1.6)
 		items := posts.Response.Items
-
 		for _, val := range items {
-			if val.IsPinned == 0 && val.Likes.Count > 1300 {
+			if val.IsPinned == 0 && val.Likes.Count > border {
 				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.Id)+"_"+strconv.Itoa(val.ID), group.Id, 117456732, accessToken)
 			}
 		}
