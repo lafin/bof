@@ -7,6 +7,7 @@ import (
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
@@ -28,17 +29,18 @@ func getGroups(session *mgo.Session) []db.Group {
 	return records
 }
 
-func tryDoRepost(session *mgo.Session, post string, group int) {
-	message := db.MessageQuery(session)
+func tryDoRepost(session *mgo.Session, client *http.Client, postId string, from, to int, accessToken string) {
+	post := db.PostQuery(session)
 	record := db.Post{}
-	err := message.Find(bson.M{"post": post}).One(&record)
+	err := post.Find(bson.M{"post": postId}).One(&record)
+	fmt.Println(err, postId)
 	if err != nil {
-		err = message.Insert(&db.Post{post, group, time.Now()})
+		err = post.Insert(&db.Post{postId, from, to, time.Now()})
 		if err != nil {
 			log.Fatal(err)
 		}
-		// repost := api.DoRepost(client, "wall1_148582", "117456732", accessToken)
-		// fmt.Println(repost.Response.Success)
+		repost := api.DoRepost(client, postId, to, accessToken)
+		fmt.Println(repost.Response.Success)
 	}
 }
 
@@ -48,7 +50,7 @@ func main() {
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
 
-	client := api.GetClient()
+	client := api.Client()
 	accessToken := api.GetAccessToken(client, clientId, email, password)
 	fmt.Printf("%s\n", accessToken)
 
@@ -60,8 +62,8 @@ func main() {
 		items := posts.Response.Items
 
 		for _, val := range items {
-			if val.IsPinned == 0 {
-				fmt.Println("wall"+"1"+"_"+strconv.Itoa(val.ID), val.Date, val.Likes.Count, val.Text)
+			if val.IsPinned == 0 && val.Likes.Count > 1300 {
+				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.Id)+"_"+strconv.Itoa(val.ID), group.Id, 117456732, accessToken)
 			}
 		}
 	}

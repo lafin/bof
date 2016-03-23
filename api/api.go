@@ -9,6 +9,7 @@ import (
 	"net/url"
 	"os"
 	"regexp"
+	"strconv"
 )
 
 const (
@@ -92,7 +93,7 @@ func getData(client *http.Client, url string) []byte {
 	return nil
 }
 
-func GetClient() *http.Client {
+func Client() *http.Client {
 	cookieJar, _ := cookiejar.New(nil)
 	client := &http.Client{
 		Jar: cookieJar,
@@ -142,8 +143,8 @@ func GetPosts(client *http.Client, domain, count string) *Post {
 	return &posts
 }
 
-func DoRepost(client *http.Client, object, groupId, accessToken string) *Repost {
-	data := getData(client, ApiUrl+"/method/wall.repost?&object="+object+"&group_id="+groupId+"&access_token="+accessToken+"&v="+ApiVersion)
+func DoRepost(client *http.Client, object string, groupId int, accessToken string) *Repost {
+	data := getData(client, ApiUrl+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupId)+"&access_token="+accessToken+"&v="+ApiVersion)
 
 	var repost Repost
 	if err := json.Unmarshal(data, &repost); err != nil {

@@ -6,9 +6,10 @@ import (
 )
 
 type Post struct {
-	Post  string
-	Group int
-	Date  time.Time
+	Post string
+	From int
+	To   int
+	Date time.Time
 }
 
 type Group struct {
@@ -27,12 +28,12 @@ func Connect(dbServerAddress string) *mgo.Session {
 	return session
 }
 
-func MessageQuery(session *mgo.Session) *mgo.Collection {
-	connect := session.DB("bof").C("message")
+func PostQuery(session *mgo.Session) *mgo.Collection {
+	connect := session.DB("bof").C("post")
 
 	duration, _ := time.ParseDuration("30d")
 	index := mgo.Index{
-		Key:         []string{"Post"},
+		Key:         []string{"post"},
 		Unique:      true,
 		ExpireAfter: duration,
 	}
