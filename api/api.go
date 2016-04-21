@@ -7,7 +7,6 @@ import (
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
-	"os"
 	"regexp"
 	"strconv"
 )
@@ -76,21 +75,19 @@ type Repost struct {
 	} `json:"response"`
 }
 
-func getData(client *http.Client, url string) []byte {
+func getData(client *http.Client, url string) ([]byte, error) {
 	response, err := client.Get(url)
 	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
+		return nil, err
 	} else {
 		defer response.Body.Close()
 		body, err := ioutil.ReadAll(response.Body)
 		if err != nil {
-			fmt.Printf("%s\n", err)
-			os.Exit(1)
+			return nil, err
 		}
-		return body
+		return body, nil
 	}
-	return nil
+	return nil, nil
 }
 
 func Client() *http.Client {
@@ -101,8 +98,11 @@ func Client() *http.Client {
 	return client
 }
 
-func GetAccessToken(client *http.Client, clientId, email, pass string) string {
-	data := getData(client, AuthUrl+"/authorize?client_id="+clientId+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v="+ApiVersion)
+func GetAccessToken(client *http.Client, clientId, email, pass string) (string, error) {
+	data, err := getData(client, AuthUrl+"/authorize?client_id="+clientId+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v="+ApiVersion)
+	if err != nil {
+		return "", err
+	}
 
 	r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
 	match := r.FindStringSubmatch(string(data))
@@ -122,33 +122,38 @@ func GetAccessToken(client *http.Client, clientId, email, pass string) string {
 
 	response, err := client.PostForm(urlStr, formData)
 	if err != nil {
-		fmt.Printf("%s", err)
-		os.Exit(1)
+		return "", err
 	} else {
 		r, _ = regexp.Compile("access_token=(.*?)&")
 		match = r.FindStringSubmatch(response.Request.URL.String())
-		return match[1]
+		return match[1], nil
 	}
 
-	return ""
+	return "", nil
 }
 
-func GetPosts(client *http.Client, domain, count string) *Post {
-	data := getData(client, ApiUrl+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+ApiVersion)
+func GetPosts(client *http.Client, domain, count string) (*Post, error) {
+	data, err := getData(client, ApiUrl+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+ApiVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	var posts Post
 	if err := json.Unmarshal(data, &posts); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &posts
+	return &posts, nil
 }
 
-func DoRepost(client *http.Client, object string, groupId int, accessToken string) *Repost {
-	data := getData(client, ApiUrl+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupId)+"&access_token="+accessToken+"&v="+ApiVersion)
+func DoRepost(client *http.Client, object string, groupId int, accessToken string) (*Repost, error) {
+	data, err := getData(client, ApiUrl+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupId)+"&access_token="+accessToken+"&v="+ApiVersion)
+	if err != nil {
+		return nil, err
+	}
 
 	var repost Repost
 	if err := json.Unmarshal(data, &repost); err != nil {
-		panic(err)
+		return nil, err
 	}
-	return &repost
+	return &repost, nil
 }

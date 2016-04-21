@@ -14,32 +14,51 @@ import (
 )
 
 func addGroup(session *mgo.Session, typeGroup string, nameGroup string, id int) {
-	group := db.GroupQuery(session)
+	group, err := db.GroupQuery(session)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 	group.Insert(&db.Group{id, typeGroup, nameGroup})
 }
 
 func getGroups(session *mgo.Session) []db.Group {
-	group := db.GroupQuery(session)
-	records := []db.Group{}
-
-	err := group.Find(nil).All(&records)
+	group, err := db.GroupQuery(session)
 	if err != nil {
 		log.Fatal(err)
+		return nil
+	}
+	records := []db.Group{}
+
+	err = group.Find(nil).All(&records)
+	if err != nil {
+		log.Fatal(err)
+		return nil
 	}
 	return records
 }
 
 func tryDoRepost(session *mgo.Session, client *http.Client, postId string, from, to int, accessToken string) {
-	post := db.PostQuery(session)
+	post, err := db.PostQuery(session)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
 	record := db.Post{}
-	err := post.Find(bson.M{"post": postId}).One(&record)
-	fmt.Println(err, postId)
+	err = post.Find(bson.M{"post": postId}).One(&record)
 	if err != nil {
 		err = post.Insert(&db.Post{postId, from, to, time.Now()})
 		if err != nil {
 			log.Fatal(err)
+			return
 		}
-		repost := api.DoRepost(client, postId, to, accessToken)
+		repost, err := api.DoRepost(client, postId, to, accessToken)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
 		fmt.Println(repost.Response.Success)
 	}
 }
@@ -62,14 +81,28 @@ func main() {
 	dbServerAddress := os.Getenv("DB_SERVER")
 
 	client := api.Client()
-	accessToken := api.GetAccessToken(client, clientId, email, password)
+	accessToken, err := api.GetAccessToken(client, clientId, email, password)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+
 	fmt.Printf("%s\n", accessToken)
 
-	session := db.Connect(dbServerAddress)
+	session, err := db.Connect(dbServerAddress)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
 	groups := getGroups(session)
 
 	for _, group := range groups {
-		posts := api.GetPosts(client, group.Name, "50")
+		posts, err := api.GetPosts(client, group.Name, "50")
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
 		border := int(getMaxCountLikes(posts) / 2.0 * 1.6)
 		items := posts.Response.Items
 		for _, val := range items {

@@ -18,17 +18,17 @@ type Group struct {
 	Name string
 }
 
-func Connect(dbServerAddress string) *mgo.Session {
+func Connect(dbServerAddress string) (*mgo.Session, error) {
 	session, err := mgo.Dial(dbServerAddress)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 	session.SetMode(mgo.Monotonic, true)
 
-	return session
+	return session, nil
 }
 
-func PostQuery(session *mgo.Session) *mgo.Collection {
+func PostQuery(session *mgo.Session) (*mgo.Collection, error) {
 	connect := session.DB("bof").C("post")
 
 	duration, _ := time.ParseDuration("30d")
@@ -39,13 +39,13 @@ func PostQuery(session *mgo.Session) *mgo.Collection {
 	}
 	err := connect.EnsureIndex(index)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return connect
+	return connect, nil
 }
 
-func GroupQuery(session *mgo.Session) *mgo.Collection {
+func GroupQuery(session *mgo.Session) (*mgo.Collection, error) {
 	connect := session.DB("bof").C("group")
 
 	index := mgo.Index{
@@ -54,8 +54,8 @@ func GroupQuery(session *mgo.Session) *mgo.Collection {
 	}
 	err := connect.EnsureIndex(index)
 	if err != nil {
-		panic(err)
+		return nil, err
 	}
 
-	return connect
+	return connect, nil
 }
