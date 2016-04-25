@@ -1,10 +1,12 @@
 package db
 
 import (
-	"gopkg.in/mgo.v2"
 	"time"
+
+	"gopkg.in/mgo.v2"
 )
 
+// Post - define struct of post repost collection
 type Post struct {
 	Post string
 	From int
@@ -12,12 +14,14 @@ type Post struct {
 	Date time.Time
 }
 
+// Group - define struct of group collection
 type Group struct {
-	Id   int
+	ID   int
 	Type string
 	Name string
 }
 
+// Connect - start session to the db
 func Connect(dbServerAddress string) (*mgo.Session, error) {
 	session, err := mgo.Dial(dbServerAddress)
 	if err != nil {
@@ -28,6 +32,7 @@ func Connect(dbServerAddress string) (*mgo.Session, error) {
 	return session, nil
 }
 
+// PostQuery - get connection for the post collection
 func PostQuery(session *mgo.Session) (*mgo.Collection, error) {
 	connect := session.DB("bof").C("post")
 
@@ -45,6 +50,7 @@ func PostQuery(session *mgo.Session) (*mgo.Collection, error) {
 	return connect, nil
 }
 
+// GroupQuery - get connection for the group collection
 func GroupQuery(session *mgo.Session) (*mgo.Collection, error) {
 	connect := session.DB("bof").C("group")
 

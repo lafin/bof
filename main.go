@@ -4,13 +4,14 @@ import (
 	"bof/api"
 	"bof/db"
 	"fmt"
-	"gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/http"
 	"os"
 	"strconv"
 	"time"
+
+	"gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func addGroup(session *mgo.Session, typeGroup string, nameGroup string, id int) {
@@ -38,7 +39,7 @@ func getGroups(session *mgo.Session) []db.Group {
 	return records
 }
 
-func tryDoRepost(session *mgo.Session, client *http.Client, postId string, from, to int, accessToken string) {
+func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from, to int, accessToken string) {
 	post, err := db.PostQuery(session)
 	if err != nil {
 		log.Fatal(err)
@@ -46,14 +47,14 @@ func tryDoRepost(session *mgo.Session, client *http.Client, postId string, from,
 	}
 
 	record := db.Post{}
-	err = post.Find(bson.M{"post": postId}).One(&record)
+	err = post.Find(bson.M{"post": postID}).One(&record)
 	if err != nil {
-		err = post.Insert(&db.Post{postId, from, to, time.Now()})
+		err = post.Insert(&db.Post{postID, from, to, time.Now()})
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
-		repost, err := api.DoRepost(client, postId, to, accessToken)
+		repost, err := api.DoRepost(client, postID, to, accessToken)
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -75,13 +76,13 @@ func getMaxCountLikes(posts *api.Post) float32 {
 }
 
 func main() {
-	clientId := os.Getenv("CLIENT_ID")
+	clientID := os.Getenv("CLIENT_ID")
 	email := os.Getenv("CLIENT_EMAIL")
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
 
 	client := api.Client()
-	accessToken, err := api.GetAccessToken(client, clientId, email, password)
+	accessToken, err := api.GetAccessToken(client, clientID, email, password)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -107,7 +108,7 @@ func main() {
 		items := posts.Response.Items
 		for _, val := range items {
 			if val.IsPinned == 0 && val.Likes.Count > border {
-				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.Id)+"_"+strconv.Itoa(val.ID), group.Id, 117456732, accessToken)
+				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.ID)+"_"+strconv.Itoa(val.ID), group.ID, 117456732, accessToken)
 			}
 		}
 	}

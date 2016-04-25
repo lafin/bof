@@ -11,12 +11,14 @@ import (
 	"strconv"
 )
 
+// Entripoints for the vk.com
 const (
-	AuthUrl    = "https://oauth.vk.com"
-	ApiUrl     = "https://api.vk.com"
-	ApiVersion = "5.50"
+	AuthURL    = "https://oauth.vk.com"
+	APIURL     = "https://api.vk.com"
+	APIVersion = "5.50"
 )
 
+// Post - struct of json object the Post
 type Post struct {
 	Response struct {
 		Count int `json:"count"`
@@ -66,6 +68,7 @@ type Post struct {
 	} `json:"response"`
 }
 
+// Repost - struct of response after repost of post
 type Repost struct {
 	Response struct {
 		LikesCount   int `json:"likes_count"`
@@ -79,17 +82,17 @@ func getData(client *http.Client, url string) ([]byte, error) {
 	response, err := client.Get(url)
 	if err != nil {
 		return nil, err
-	} else {
-		defer response.Body.Close()
-		body, err := ioutil.ReadAll(response.Body)
-		if err != nil {
-			return nil, err
-		}
-		return body, nil
 	}
-	return nil, nil
+
+	defer response.Body.Close()
+	body, err := ioutil.ReadAll(response.Body)
+	if err != nil {
+		return nil, err
+	}
+	return body, nil
 }
 
+// Client - get http client
 func Client() *http.Client {
 	cookieJar, _ := cookiejar.New(nil)
 	client := &http.Client{
@@ -98,8 +101,9 @@ func Client() *http.Client {
 	return client
 }
 
-func GetAccessToken(client *http.Client, clientId, email, pass string) (string, error) {
-	data, err := getData(client, AuthUrl+"/authorize?client_id="+clientId+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v="+ApiVersion)
+// GetAccessToken - get access toket for authorize on the vk.com
+func GetAccessToken(client *http.Client, clientID, email, pass string) (string, error) {
+	data, err := getData(client, AuthURL+"/authorize?client_id="+clientID+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v="+APIVersion)
 	if err != nil {
 		return "", err
 	}
@@ -123,17 +127,16 @@ func GetAccessToken(client *http.Client, clientId, email, pass string) (string, 
 	response, err := client.PostForm(urlStr, formData)
 	if err != nil {
 		return "", err
-	} else {
-		r, _ = regexp.Compile("access_token=(.*?)&")
-		match = r.FindStringSubmatch(response.Request.URL.String())
-		return match[1], nil
 	}
 
-	return "", nil
+	r, _ = regexp.Compile("access_token=(.*?)&")
+	match = r.FindStringSubmatch(response.Request.URL.String())
+	return match[1], nil
 }
 
+// GetPosts - get list of posts
 func GetPosts(client *http.Client, domain, count string) (*Post, error) {
-	data, err := getData(client, ApiUrl+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+ApiVersion)
+	data, err := getData(client, APIURL+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -145,8 +148,9 @@ func GetPosts(client *http.Client, domain, count string) (*Post, error) {
 	return &posts, nil
 }
 
-func DoRepost(client *http.Client, object string, groupId int, accessToken string) (*Repost, error) {
-	data, err := getData(client, ApiUrl+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupId)+"&access_token="+accessToken+"&v="+ApiVersion)
+// DoRepost - do repost the post
+func DoRepost(client *http.Client, object string, groupID int, accessToken string) (*Repost, error) {
+	data, err := getData(client, APIURL+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupID)+"&access_token="+accessToken+"&v="+APIVersion)
 	if err != nil {
 		return nil, err
 	}
