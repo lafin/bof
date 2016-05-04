@@ -1,8 +1,6 @@
 package main
 
 import (
-	"bof/api"
-	"bof/db"
 	"fmt"
 	"log"
 	"net/http"
@@ -10,6 +8,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/lafin/bof/api"
+	"github.com/lafin/bof/db"
 	"gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
