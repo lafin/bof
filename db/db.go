@@ -6,7 +6,7 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-// Post - define struct of post repost collection
+// Post - define struct of posts collection
 type Post struct {
 	Post string
 	From int
@@ -14,7 +14,10 @@ type Post struct {
 	Date time.Time
 }
 
-// Group - define struct of group collection
+// Group - define struct of groups collection
+// ID - ex. 23530818
+// Type - "cats"
+// Name - "smacat"
 type Group struct {
 	ID   int
 	Type string
