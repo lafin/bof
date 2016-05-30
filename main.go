@@ -14,13 +14,13 @@ import (
 	"gopkg.in/mgo.v2/bson"
 )
 
-func addGroup(session *mgo.Session, typeGroup string, nameGroup string, id int) {
+func addGroup(session *mgo.Session, typeGroup string, sourceName string, sourceID int, destinationID int, border float32) {
 	group, err := db.GroupQuery(session)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	group.Insert(&db.Group{id, typeGroup, nameGroup})
+	group.Insert(&db.Group{SourceID: sourceID, SourceName: sourceName, Type: typeGroup, DestinationID: destinationID, Border: border})
 }
 
 func getGroups(session *mgo.Session) []db.Group {
@@ -98,17 +98,17 @@ func main() {
 	groups := getGroups(session)
 
 	for _, group := range groups {
-		posts, err := api.GetPosts(client, group.Name, "50")
+		posts, err := api.GetPosts(client, group.SourceName, "50")
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 
-		border := int(getMaxCountLikes(posts) / 2.0 * 1.6)
+		border := int(getMaxCountLikes(posts) / 2.0 * group.Border)
 		items := posts.Response.Items
 		for _, val := range items {
 			if val.IsPinned == 0 && val.Likes.Count > border {
-				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.ID)+"_"+strconv.Itoa(val.ID), group.ID, 117456732, accessToken)
+				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.SourceID)+"_"+strconv.Itoa(val.ID), group.SourceID, group.DestinationID, accessToken)
 			}
 		}
 	}
