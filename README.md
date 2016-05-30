@@ -1,8 +1,10 @@
-## soon
+## Best of <something>
 ___
 
 ```
+$ docker run -d --restart=always -p 27017:27017 --name mongo -d mongo
 $ git clone https://github.com/lafin/bof.git
 $ cd bof
-$ CLIENT_ID=<CLIENT_ID> CLIENT_EMAIL=<CLIENT_EMAIL> CLIENT_PASSWORD=<CLIENT_PASSWORD> DB_SERVER=<DB_SERVER> go run main.go
+$ docker build -t bof .
+$ docker run -e "CLIENT_ID=<...>" -e "CLIENT_EMAIL=<...>" -e "CLIENT_PASSWORD=<...>" -e "DB_SERVER=mongo" --link mongo:mongo --rm bof
 ```
