@@ -62,8 +62,10 @@ func GroupQuery(session *mgo.Session) (*mgo.Collection, error) {
 	connect := session.DB("bof").C("group")
 
 	index := mgo.Index{
-		Key:    []string{"Type", "SourceName"},
-		Unique: true,
+		Key:        []string{"Type", "SourceName"},
+		DropDups:   true,
+		Background: true,
+		Sparse:     true,
 	}
 	err := connect.EnsureIndex(index)
 	if err != nil {
