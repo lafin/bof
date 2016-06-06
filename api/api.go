@@ -18,6 +18,30 @@ const (
 	APIVersion = "5.50"
 )
 
+// Group - struct of json object the Group
+type Group struct {
+	Response []struct {
+		AdminLevel int `json:"admin_level"`
+		ID         int `json:"id"`
+		IsAdmin    int `json:"is_admin"`
+		IsClosed   int `json:"is_closed"`
+		IsMember   int `json:"is_member"`
+		Links      []struct {
+			ID       int    `json:"id"`
+			Name     string `json:"name"`
+			Photo100 string `json:"photo_100"`
+			Photo50  string `json:"photo_50"`
+			URL      string `json:"url"`
+		} `json:"links"`
+		Name       string `json:"name"`
+		Photo100   string `json:"photo_100"`
+		Photo200   string `json:"photo_200"`
+		Photo50    string `json:"photo_50"`
+		ScreenName string `json:"screen_name"`
+		Type       string `json:"type"`
+	} `json:"response"`
+}
+
 // Post - struct of json object the Post
 type Post struct {
 	Response struct {
@@ -146,6 +170,20 @@ func GetPosts(client *http.Client, domain, count string) (*Post, error) {
 		return nil, err
 	}
 	return &posts, nil
+}
+
+// GetGroupInfo - get group info
+func GetGroupInfo(client *http.Client, groupID, fields string) (*Group, error) {
+	data, err := getData(client, APIURL+"/method/groups.getById?&group_id="+groupID+"&fields="+fields+"&v="+APIVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	var group Group
+	if err := json.Unmarshal(data, &group); err != nil {
+		return nil, err
+	}
+	return &group, nil
 }
 
 // DoRepost - do repost the post
