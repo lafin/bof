@@ -5,7 +5,9 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/lafin/bof/api"
@@ -20,7 +22,7 @@ func addGroup(session *mgo.Session, typeGroup string, sourceName string, sourceI
 		log.Fatal(err)
 		return
 	}
-	group.Insert(&db.Group{SourceID: sourceID, SourceName: sourceName, Type: typeGroup, DestinationID: destinationID, Border: border})
+	group.Insert(&db.Group{SourceID: sourceID, Border: border})
 }
 
 func getGroups(session *mgo.Session) []db.Group {
@@ -49,11 +51,6 @@ func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from,
 	record := db.Post{}
 	err = post.Find(bson.M{"post": postID}).One(&record)
 	if err != nil {
-		err = post.Insert(&db.Post{postID, from, to, time.Now()})
-		if err != nil {
-			log.Fatal(err)
-			return
-		}
 		repost, err := api.DoRepost(client, postID, to, accessToken)
 		if err != nil {
 			log.Fatal(err)
@@ -61,6 +58,15 @@ func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from,
 		}
 
 		fmt.Println(repost.Response.Success)
+		if repost.Response.Success == 1 {
+			err = post.Insert(&db.Post{postID, from, to, time.Now()})
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+		}
+
+		time.Sleep(300 * time.Millisecond)
 	}
 }
 
@@ -95,20 +101,42 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	groups := getGroups(session)
 
+	groups := getGroups(session)
 	for _, group := range groups {
-		posts, err := api.GetPosts(client, group.SourceName, "50")
+		groupInfo, err := api.GetGroupsInfo(client, strconv.Itoa(group.SourceID), "links")
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 
-		border := int(getMaxCountLikes(posts) / 2.0 * group.Border)
-		items := posts.Response.Items
-		for _, val := range items {
-			if val.IsPinned == 0 && val.Likes.Count > border {
-				tryDoRepost(session, client, "wall-"+strconv.Itoa(group.SourceID)+"_"+strconv.Itoa(val.ID), group.SourceID, group.DestinationID, accessToken)
+		links := groupInfo.Response[0].Links
+		r, _ := regexp.Compile("https://vk.com/(.*?)$")
+		var ids []string
+		for _, link := range links {
+			ids = append(ids, r.FindStringSubmatch(link.URL)[1])
+		}
+
+		groupsInfo, err := api.GetGroupsInfo(client, strings.Join(ids, ","), "")
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+
+		infos := groupsInfo.Response
+		for _, info := range infos {
+			posts, err := api.GetPosts(client, strconv.Itoa(info.ID), "50")
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+
+			border := int(getMaxCountLikes(posts) / 2.0 * group.Border)
+			items := posts.Response.Items
+			for _, val := range items {
+				if val.IsPinned == 0 && val.Likes.Count > border {
+					tryDoRepost(session, client, "wall-"+strconv.Itoa(info.ID)+"_"+strconv.Itoa(val.ID), info.ID, group.SourceID, accessToken)
+				}
 			}
 		}
 	}

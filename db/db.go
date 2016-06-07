@@ -15,17 +15,9 @@ type Post struct {
 }
 
 // Group - define struct of groups collection
-// SourceID - 23530818
-// SourceName - "smcat"
-// DestinationID - 117456732
-// Type - "cats"
-// Border - 1.5
 type Group struct {
-	SourceID      int
-	SourceName    string
-	DestinationID int
-	Type          string
-	Border        float32
+	SourceID int
+	Border   float32
 }
 
 // Connect - start session to the db
@@ -62,7 +54,7 @@ func GroupQuery(session *mgo.Session) (*mgo.Collection, error) {
 	connect := session.DB("bof").C("group")
 
 	index := mgo.Index{
-		Key:        []string{"Type", "SourceName"},
+		Key:        []string{"SourceID"},
 		DropDups:   true,
 		Background: true,
 		Sparse:     true,
