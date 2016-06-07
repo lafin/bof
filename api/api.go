@@ -159,8 +159,8 @@ func GetAccessToken(client *http.Client, clientID, email, pass string) (string, 
 }
 
 // GetPosts - get list of posts
-func GetPosts(client *http.Client, domain, count string) (*Post, error) {
-	data, err := getData(client, APIURL+"/method/wall.get?&domain="+domain+"&count="+count+"&filter=all&v="+APIVersion)
+func GetPosts(client *http.Client, groupID, count string) (*Post, error) {
+	data, err := getData(client, APIURL+"/method/wall.get?&owner_id=-"+groupID+"&count="+count+"&filter=all&v="+APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -172,9 +172,9 @@ func GetPosts(client *http.Client, domain, count string) (*Post, error) {
 	return &posts, nil
 }
 
-// GetGroupInfo - get group info
-func GetGroupInfo(client *http.Client, groupID, fields string) (*Group, error) {
-	data, err := getData(client, APIURL+"/method/groups.getById?&group_id="+groupID+"&fields="+fields+"&v="+APIVersion)
+// GetGroupsInfo - get group info
+func GetGroupsInfo(client *http.Client, groupIDs, fields string) (*Group, error) {
+	data, err := getData(client, APIURL+"/method/groups.getById?&group_ids="+groupIDs+"&fields="+fields+"&v="+APIVersion)
 	if err != nil {
 		return nil, err
 	}
