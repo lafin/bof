@@ -41,11 +41,11 @@ func getGroups(session *mgo.Session) []db.Group {
 	return records
 }
 
-func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from, to int, accessToken string) {
+func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from, to int, accessToken string) int {
 	post, err := db.PostQuery(session)
 	if err != nil {
 		log.Fatal(err)
-		return
+		return 0
 	}
 
 	record := db.Post{}
@@ -54,7 +54,7 @@ func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from,
 		repost, err := api.DoRepost(client, postID, to, accessToken)
 		if err != nil {
 			log.Fatal(err)
-			return
+			return 0
 		}
 
 		fmt.Println(repost.Response.Success)
@@ -62,12 +62,12 @@ func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from,
 			err = post.Insert(&db.Post{postID, from, to, time.Now()})
 			if err != nil {
 				log.Fatal(err)
-				return
+				return 0
 			}
+			return repost.Response.PostID
 		}
-
-		time.Sleep(300 * time.Millisecond)
 	}
+	return 0
 }
 
 func getMaxCountLikes(posts *api.Post) float32 {
@@ -133,9 +133,14 @@ func main() {
 
 			border := int(getMaxCountLikes(posts) / 2.0 * group.Border)
 			items := posts.Response.Items
+			var postID int
 			for _, val := range items {
 				if val.IsPinned == 0 && val.Likes.Count > border {
-					tryDoRepost(session, client, "wall-"+strconv.Itoa(info.ID)+"_"+strconv.Itoa(val.ID), info.ID, group.SourceID, accessToken)
+					postID = tryDoRepost(session, client, "wall-"+strconv.Itoa(info.ID)+"_"+strconv.Itoa(val.ID), info.ID, group.SourceID, accessToken)
+					if postID == 0 {
+						fmt.Println("Unsuccess try do repost")
+						return
+					}
 				}
 			}
 		}
