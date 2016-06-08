@@ -2,7 +2,6 @@ package api
 
 import (
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
@@ -135,11 +134,9 @@ func GetAccessToken(client *http.Client, clientID, email, pass string) (string, 
 	r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
 	match := r.FindStringSubmatch(string(data))
 	urlStr := match[1]
-	fmt.Println(urlStr)
 
 	r, _ = regexp.Compile("<input type=\"hidden\" name=\"(.*?)\" value=\"(.*?)\" ?/?>")
 	matches := r.FindAllStringSubmatch(string(data), -1)
-	fmt.Println(matches)
 
 	formData := url.Values{}
 	for _, val := range matches {

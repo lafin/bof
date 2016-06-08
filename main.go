@@ -94,7 +94,7 @@ func main() {
 		return
 	}
 
-	fmt.Printf("%s\n", accessToken)
+	fmt.Println(accessToken)
 
 	session, err := db.Connect(dbServerAddress)
 	if err != nil {
