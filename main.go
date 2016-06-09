@@ -41,31 +41,42 @@ func getGroups(session *mgo.Session) []db.Group {
 	return records
 }
 
-func tryDoRepost(session *mgo.Session, client *http.Client, postID string, from, to int, accessToken string) int {
+func existRepost(session *mgo.Session, postID string) bool {
+	post, err := db.PostQuery(session)
+	if err != nil {
+		log.Fatal(err)
+		return true
+	}
+
+	record := db.Post{}
+	err = post.Find(bson.M{"post": postID}).One(&record)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func doRepost(session *mgo.Session, client *http.Client, postID string, from, to int, accessToken string) int {
 	post, err := db.PostQuery(session)
 	if err != nil {
 		log.Fatal(err)
 		return 0
 	}
 
-	record := db.Post{}
-	err = post.Find(bson.M{"post": postID}).One(&record)
+	repost, err := api.DoRepost(client, postID, to, accessToken)
 	if err != nil {
-		repost, err := api.DoRepost(client, postID, to, accessToken)
+		log.Fatal(err)
+		return 0
+	}
+
+	fmt.Println(repost.Response.Success)
+	if repost.Response.Success == 1 {
+		err = post.Insert(&db.Post{postID, from, to, time.Now()})
 		if err != nil {
 			log.Fatal(err)
 			return 0
 		}
-
-		fmt.Println(repost.Response.Success)
-		if repost.Response.Success == 1 {
-			err = post.Insert(&db.Post{postID, from, to, time.Now()})
-			if err != nil {
-				log.Fatal(err)
-				return 0
-			}
-			return repost.Response.PostID
-		}
+		return repost.Response.PostID
 	}
 	return 0
 }
@@ -133,13 +144,19 @@ func main() {
 
 			border := int(getMaxCountLikes(posts) / 2.0 * group.Border)
 			items := posts.Response.Items
-			var postID int
+			var repostID int
+			var postID string
+			var exist bool
 			for _, val := range items {
 				if val.IsPinned == 0 && val.Likes.Count > border {
-					postID = tryDoRepost(session, client, "wall-"+strconv.Itoa(info.ID)+"_"+strconv.Itoa(val.ID), info.ID, group.SourceID, accessToken)
-					if postID == 0 {
-						fmt.Println("Unsuccess try do repost")
-						return
+					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
+					exist = existRepost(session, postID)
+					if exist == false {
+						repostID = doRepost(session, client, postID, info.ID, group.SourceID, accessToken)
+						if repostID == 0 {
+							fmt.Println("Unsuccess try do repost")
+							return
+						}
 					}
 				}
 			}
