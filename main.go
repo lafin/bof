@@ -142,7 +142,7 @@ func main() {
 				return
 			}
 
-			border := int(getMaxCountLikes(posts) / 2.0 * group.Border)
+			border := int(getMaxCountLikes(posts) * group.Border)
 			items := posts.Response.Items
 			var repostID int
 			var postID string
