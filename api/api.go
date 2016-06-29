@@ -184,8 +184,8 @@ func GetGroupsInfo(client *http.Client, groupIDs, fields string) (*Group, error)
 }
 
 // DoRepost - do repost the post
-func DoRepost(client *http.Client, object string, groupID int, accessToken string) (*Repost, error) {
-	data, err := getData(client, APIURL+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupID)+"&access_token="+accessToken+"&v="+APIVersion)
+func DoRepost(client *http.Client, object string, groupID int, message string, accessToken string) (*Repost, error) {
+	data, err := getData(client, APIURL+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupID)+"&message="+message+"&access_token="+accessToken+"&v="+APIVersion)
 	if err != nil {
 		return nil, err
 	}

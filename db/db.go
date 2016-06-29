@@ -18,6 +18,7 @@ type Post struct {
 type Group struct {
 	SourceID int
 	Border   float32
+	Message  string
 }
 
 // Connect - start session to the db

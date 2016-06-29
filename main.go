@@ -56,14 +56,14 @@ func existRepost(session *mgo.Session, postID string) bool {
 	return true
 }
 
-func doRepost(session *mgo.Session, client *http.Client, postID string, from, to int, accessToken string) int {
+func doRepost(session *mgo.Session, client *http.Client, postID string, from, to int, message, accessToken string) int {
 	post, err := db.PostQuery(session)
 	if err != nil {
 		log.Fatal(err)
 		return 0
 	}
 
-	repost, err := api.DoRepost(client, postID, to, accessToken)
+	repost, err := api.DoRepost(client, postID, to, message, accessToken)
 	if err != nil {
 		log.Fatal(err)
 		return 0
@@ -152,7 +152,7 @@ func main() {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					exist = existRepost(session, postID)
 					if exist == false {
-						repostID = doRepost(session, client, postID, info.ID, group.SourceID, accessToken)
+						repostID = doRepost(session, client, postID, info.ID, group.SourceID, group.Message, accessToken)
 						if repostID == 0 {
 							fmt.Println("Unsuccess try do repost")
 							return
