@@ -6,24 +6,12 @@ import (
 	"gopkg.in/mgo.v2"
 )
 
-// Post - define struct of posts collection
-type Post struct {
-	Post string
-	From int
-	To   int
-	Date time.Time
-}
-
-// Group - define struct of groups collection
-type Group struct {
-	SourceID int
-	Border   float32
-	Message  string
-}
+var session *mgo.Session
 
 // Connect - start session to the db
 func Connect(dbServerAddress string) (*mgo.Session, error) {
-	session, err := mgo.Dial(dbServerAddress)
+	var err error
+	session, err = mgo.Dial(dbServerAddress)
 	if err != nil {
 		return nil, err
 	}
@@ -33,7 +21,7 @@ func Connect(dbServerAddress string) (*mgo.Session, error) {
 }
 
 // PostQuery - get connection for the post collection
-func PostQuery(session *mgo.Session) (*mgo.Collection, error) {
+func PostQuery() (*mgo.Collection, error) {
 	connect := session.DB("bof").C("post")
 
 	duration, _ := time.ParseDuration("30d")
@@ -47,11 +35,19 @@ func PostQuery(session *mgo.Session) (*mgo.Collection, error) {
 		return nil, err
 	}
 
+	index = mgo.Index{
+		Key: []string{"fingerprints"},
+	}
+	err = connect.EnsureIndex(index)
+	if err != nil {
+		return nil, err
+	}
+
 	return connect, nil
 }
 
 // GroupQuery - get connection for the group collection
-func GroupQuery(session *mgo.Session) (*mgo.Collection, error) {
+func GroupQuery() (*mgo.Collection, error) {
 	connect := session.DB("bof").C("group")
 
 	index := mgo.Index{

@@ -3,7 +3,6 @@ package main
 import (
 	"fmt"
 	"log"
-	"net/http"
 	"os"
 	"regexp"
 	"strconv"
@@ -12,12 +11,12 @@ import (
 
 	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
-	"gopkg.in/mgo.v2"
+	"github.com/lafin/bof/util"
 	"gopkg.in/mgo.v2/bson"
 )
 
-func addGroup(session *mgo.Session, typeGroup string, sourceName string, sourceID int, destinationID int, border float32) {
-	group, err := db.GroupQuery(session)
+func addGroup(typeGroup string, sourceName string, sourceID int, destinationID int, border float32) {
+	group, err := db.GroupQuery()
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -25,8 +24,8 @@ func addGroup(session *mgo.Session, typeGroup string, sourceName string, sourceI
 	group.Insert(&db.Group{SourceID: sourceID, Border: border})
 }
 
-func getGroups(session *mgo.Session) []db.Group {
-	group, err := db.GroupQuery(session)
+func getGroups() []db.Group {
+	group, err := db.GroupQuery()
 	if err != nil {
 		log.Fatal(err)
 		return nil
@@ -41,8 +40,8 @@ func getGroups(session *mgo.Session) []db.Group {
 	return records
 }
 
-func existRepost(session *mgo.Session, postID string) bool {
-	post, err := db.PostQuery(session)
+func existRepost(postID string) bool {
+	post, err := db.PostQuery()
 	if err != nil {
 		log.Fatal(err)
 		return true
@@ -56,14 +55,24 @@ func existRepost(session *mgo.Session, postID string) bool {
 	return true
 }
 
-func doRepost(session *mgo.Session, client *http.Client, postID string, from, to int, message, accessToken string) int {
-	post, err := db.PostQuery(session)
+func checkOnUniqueness(post api.PostItem) bool {
+	for _, val := range post.Attachments {
+		if len(val.Photo.Photo75) > 0 {
+			fmt.Println("Photo75")
+			fmt.Println(util.GetSha1(val.Photo.Photo75))
+		}
+	}
+	return false
+}
+
+func doRepost(postID string, fingerprints []string, from, to int, message string) int {
+	post, err := db.PostQuery()
 	if err != nil {
 		log.Fatal(err)
 		return 0
 	}
 
-	repost, err := api.DoRepost(client, postID, to, message, accessToken)
+	repost, err := api.DoRepost(postID, to, message)
 	if err != nil {
 		log.Fatal(err)
 		return 0
@@ -71,7 +80,7 @@ func doRepost(session *mgo.Session, client *http.Client, postID string, from, to
 
 	fmt.Println(repost.Response.Success)
 	if repost.Response.Success == 1 {
-		err = post.Insert(&db.Post{postID, from, to, time.Now()})
+		err = post.Insert(&db.Post{postID, fingerprints, from, to, time.Now()})
 		if err != nil {
 			log.Fatal(err)
 			return 0
@@ -98,14 +107,12 @@ func main() {
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
 
-	client := api.Client()
-	accessToken, err := api.GetAccessToken(client, clientID, email, password)
+	_, err := api.GetAccessToken(clientID, email, password)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-
-	fmt.Println(accessToken)
+	fmt.Println("connected")
 
 	session, err := db.Connect(dbServerAddress)
 	if err != nil {
@@ -113,9 +120,9 @@ func main() {
 		return
 	}
 
-	groups := getGroups(session)
+	groups := getGroups()
 	for _, group := range groups {
-		groupInfo, err := api.GetGroupsInfo(client, strconv.Itoa(group.SourceID), "links")
+		groupInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -128,7 +135,7 @@ func main() {
 			ids = append(ids, r.FindStringSubmatch(link.URL)[1])
 		}
 
-		groupsInfo, err := api.GetGroupsInfo(client, strings.Join(ids, ","), "")
+		groupsInfo, err := api.GetGroupsInfo(strings.Join(ids, ","), "")
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -136,7 +143,7 @@ func main() {
 
 		infos := groupsInfo.Response
 		for _, info := range infos {
-			posts, err := api.GetPosts(client, strconv.Itoa(info.ID), "50")
+			posts, err := api.GetPosts(strconv.Itoa(info.ID), "50")
 			if err != nil {
 				log.Fatal(err)
 				return
@@ -144,20 +151,19 @@ func main() {
 
 			border := int(getMaxCountLikes(posts) * group.Border)
 			items := posts.Response.Items
-			var repostID int
+			// var repostID int
 			var postID string
-			var exist bool
 			for _, val := range items {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
-					exist = existRepost(session, postID)
-					if exist == false {
-						repostID = doRepost(session, client, postID, info.ID, group.SourceID, group.Message, accessToken)
-						if repostID == 0 {
-							fmt.Println("Unsuccess try do repost")
-							return
-						}
+					if !existRepost(postID) && checkOnUniqueness(val) {
+						// repostID = doRepost(postID, info.ID, group.SourceID, group.Message)
+						// if repostID == 0 {
+						// 	fmt.Println("Unsuccess try do repost")
+						// 	return
+						// }
 					}
+					checkOnUniqueness(val)
 				}
 			}
 		}

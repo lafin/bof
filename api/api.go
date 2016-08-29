@@ -2,106 +2,22 @@ package api
 
 import (
 	"encoding/json"
+	"errors"
 	"io/ioutil"
 	"net/http"
 	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strconv"
+	"sync"
 )
 
-// Entripoints for the vk.com
-const (
-	AuthURL    = "https://oauth.vk.com"
-	APIURL     = "https://api.vk.com"
-	APIVersion = "5.50"
-)
+var once sync.Once
+var client *http.Client
+var accessToken string
 
-// Group - struct of json object the Group
-type Group struct {
-	Response []struct {
-		AdminLevel int `json:"admin_level"`
-		ID         int `json:"id"`
-		IsAdmin    int `json:"is_admin"`
-		IsClosed   int `json:"is_closed"`
-		IsMember   int `json:"is_member"`
-		Links      []struct {
-			ID       int    `json:"id"`
-			Name     string `json:"name"`
-			Photo100 string `json:"photo_100"`
-			Photo50  string `json:"photo_50"`
-			URL      string `json:"url"`
-		} `json:"links"`
-		Name       string `json:"name"`
-		Photo100   string `json:"photo_100"`
-		Photo200   string `json:"photo_200"`
-		Photo50    string `json:"photo_50"`
-		ScreenName string `json:"screen_name"`
-		Type       string `json:"type"`
-	} `json:"response"`
-}
-
-// Post - struct of json object the Post
-type Post struct {
-	Response struct {
-		Count int `json:"count"`
-		Items []struct {
-			Attachments []struct {
-				Photo struct {
-					AccessKey string `json:"access_key"`
-					AlbumID   int    `json:"album_id"`
-					Date      int    `json:"date"`
-					Height    int    `json:"height"`
-					ID        int    `json:"id"`
-					OwnerID   int    `json:"owner_id"`
-					Photo130  string `json:"photo_130"`
-					Photo604  string `json:"photo_604"`
-					Photo75   string `json:"photo_75"`
-					Text      string `json:"text"`
-					UserID    int    `json:"user_id"`
-					Width     int    `json:"width"`
-				} `json:"photo"`
-				Type string `json:"type"`
-			} `json:"attachments"`
-			Comments struct {
-				CanPost int `json:"can_post"`
-				Count   int `json:"count"`
-			} `json:"comments"`
-			Date     int `json:"date"`
-			FromID   int `json:"from_id"`
-			ID       int `json:"id"`
-			IsPinned int `json:"is_pinned"`
-			Likes    struct {
-				CanLike    int `json:"can_like"`
-				CanPublish int `json:"can_publish"`
-				Count      int `json:"count"`
-				UserLikes  int `json:"user_likes"`
-			} `json:"likes"`
-			OwnerID    int `json:"owner_id"`
-			PostSource struct {
-				Type string `json:"type"`
-			} `json:"post_source"`
-			PostType string `json:"post_type"`
-			Reposts  struct {
-				Count        int `json:"count"`
-				UserReposted int `json:"user_reposted"`
-			} `json:"reposts"`
-			Text string `json:"text"`
-		} `json:"items"`
-	} `json:"response"`
-}
-
-// Repost - struct of response after repost of post
-type Repost struct {
-	Response struct {
-		LikesCount   int `json:"likes_count"`
-		PostID       int `json:"post_id"`
-		RepostsCount int `json:"reposts_count"`
-		Success      int `json:"success"`
-	} `json:"response"`
-}
-
-func getData(client *http.Client, url string) ([]byte, error) {
+func getData(url string) ([]byte, error) {
+	client := Client()
 	response, err := client.Get(url)
 	if err != nil {
 		return nil, err
@@ -115,18 +31,26 @@ func getData(client *http.Client, url string) ([]byte, error) {
 	return body, nil
 }
 
-// Client - get http client
+// Client - get instance of http client
 func Client() *http.Client {
-	cookieJar, _ := cookiejar.New(nil)
-	client := &http.Client{
-		Jar: cookieJar,
-	}
+	once.Do(func() {
+		cookieJar, _ := cookiejar.New(nil)
+		client = &http.Client{
+			Jar: cookieJar,
+		}
+	})
+
 	return client
 }
 
 // GetAccessToken - get access toket for authorize on the vk.com
-func GetAccessToken(client *http.Client, clientID, email, pass string) (string, error) {
-	data, err := getData(client, AuthURL+"/authorize?client_id="+clientID+"&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v="+APIVersion)
+func GetAccessToken(clientID, email, pass string) (string, error) {
+	if len(accessToken) > 0 {
+		return accessToken, nil
+	}
+
+	client := Client()
+	data, err := getData(AuthURL + "/authorize?client_id=" + clientID + "&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v=" + APIVersion)
 	if err != nil {
 		return "", err
 	}
@@ -152,12 +76,17 @@ func GetAccessToken(client *http.Client, clientID, email, pass string) (string, 
 
 	r, _ = regexp.Compile("access_token=(.*?)&")
 	match = r.FindStringSubmatch(response.Request.URL.String())
-	return match[1], nil
+	if len(match) > 0 {
+		accessToken = match[1]
+		return accessToken, nil
+	}
+
+	return "", errors.New("can't find the access_token")
 }
 
 // GetPosts - get list of posts
-func GetPosts(client *http.Client, groupID, count string) (*Post, error) {
-	data, err := getData(client, APIURL+"/method/wall.get?&owner_id=-"+groupID+"&count="+count+"&filter=all&v="+APIVersion)
+func GetPosts(groupID, count string) (*Post, error) {
+	data, err := getData(APIURL + "/method/wall.get?&owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -170,8 +99,8 @@ func GetPosts(client *http.Client, groupID, count string) (*Post, error) {
 }
 
 // GetGroupsInfo - get group info
-func GetGroupsInfo(client *http.Client, groupIDs, fields string) (*Group, error) {
-	data, err := getData(client, APIURL+"/method/groups.getById?&group_ids="+groupIDs+"&fields="+fields+"&v="+APIVersion)
+func GetGroupsInfo(groupIDs, fields string) (*Group, error) {
+	data, err := getData(APIURL + "/method/groups.getById?&group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -184,8 +113,8 @@ func GetGroupsInfo(client *http.Client, groupIDs, fields string) (*Group, error)
 }
 
 // DoRepost - do repost the post
-func DoRepost(client *http.Client, object string, groupID int, message string, accessToken string) (*Repost, error) {
-	data, err := getData(client, APIURL+"/method/wall.repost?&object="+object+"&group_id="+strconv.Itoa(groupID)+"&message="+message+"&access_token="+accessToken+"&v="+APIVersion)
+func DoRepost(object string, groupID int, message string) (*Repost, error) {
+	data, err := getData(APIURL + "/method/wall.repost?&object=" + object + "&group_id=" + strconv.Itoa(groupID) + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
