@@ -12,6 +12,7 @@ import (
 	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
 	"github.com/lafin/bof/util"
+	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -40,13 +41,20 @@ func getGroups() []db.Group {
 	return records
 }
 
-func existRepost(postID string) bool {
+func getPostQuery() (*mgo.Collection, error) {
 	post, err := db.PostQuery()
 	if err != nil {
 		log.Fatal(err)
-		return true
+		return nil, err
 	}
+	return post, nil
+}
 
+func existRepostByID(postID string) bool {
+	post, err := getPostQuery()
+	if err != nil {
+		return false
+	}
 	record := db.Post{}
 	err = post.Find(bson.M{"post": postID}).One(&record)
 	if err != nil {
@@ -55,14 +63,29 @@ func existRepost(postID string) bool {
 	return true
 }
 
-func checkOnUniqueness(post api.PostItem) bool {
+func existRepostByFingerprints(fingerprints []string) bool {
+	post, err := getPostQuery()
+	if err != nil {
+		return false
+	}
+	record := db.Post{}
+	err = post.Find(bson.M{"fingerprints": fingerprints}).One(&record)
+	if err != nil {
+		return false
+	}
+	return true
+}
+
+func checkOnUniqueness(post api.PostItem) (bool, []string) {
+	var hashes []string
+	var hash []byte
 	for _, val := range post.Attachments {
 		if len(val.Photo.Photo75) > 0 {
-			fmt.Println("Photo75")
-			fmt.Println(util.GetSha1(val.Photo.Photo75))
+			hash = util.GetSha1(val.Photo.Photo75)
+			hashes = append(hashes, fmt.Sprintf("%x", hash))
 		}
 	}
-	return false
+	return !existRepostByFingerprints(hashes), hashes
 }
 
 func doRepost(postID string, fingerprints []string, from, to int, message string) int {
@@ -151,19 +174,22 @@ func main() {
 
 			border := int(getMaxCountLikes(posts) * group.Border)
 			items := posts.Response.Items
-			// var repostID int
+			var repostID int
 			var postID string
 			for _, val := range items {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
-					if !existRepost(postID) && checkOnUniqueness(val) {
-						// repostID = doRepost(postID, info.ID, group.SourceID, group.Message)
-						// if repostID == 0 {
-						// 	fmt.Println("Unsuccess try do repost")
-						// 	return
-						// }
+					if !existRepostByID(postID) {
+						unique, fingerprints := checkOnUniqueness(val)
+						fmt.Println(unique, fingerprints)
+						if unique || len(fingerprints) == 0 {
+							repostID = doRepost(postID, fingerprints, info.ID, group.SourceID, group.Message)
+							if repostID == 0 {
+								fmt.Println("Unsuccess try do repost")
+								return
+							}
+						}
 					}
-					checkOnUniqueness(val)
 				}
 			}
 		}
