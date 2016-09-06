@@ -48,6 +48,33 @@ type PostItem struct {
 			UserID    int    `json:"user_id"`
 			Width     int    `json:"width"`
 		} `json:"photo"`
+		Doc struct {
+			AccessKey string `json:"access_key"`
+			Date      int    `json:"date"`
+			Ext       string `json:"ext"`
+			ID        int    `json:"id"`
+			OwnerID   int    `json:"owner_id"`
+			Preview   struct {
+				Photo struct {
+					Sizes []struct {
+						Height int    `json:"height"`
+						Src    string `json:"src"`
+						Type   string `json:"type"`
+						Width  int    `json:"width"`
+					} `json:"sizes"`
+				} `json:"photo"`
+				Video struct {
+					FileSize int    `json:"file_size"`
+					Height   int    `json:"height"`
+					Src      string `json:"src"`
+					Width    int    `json:"width"`
+				} `json:"video"`
+			} `json:"preview"`
+			Size  int    `json:"size"`
+			Title string `json:"title"`
+			Type  int    `json:"type"`
+			URL   string `json:"url"`
+		} `json:"doc"`
 		Type string `json:"type"`
 	} `json:"attachments"`
 	Comments struct {

@@ -80,10 +80,17 @@ func checkOnUniqueness(post api.PostItem) (bool, []string) {
 	var hashes []string
 	var hash []byte
 	for _, val := range post.Attachments {
-		if len(val.Photo.Photo75) > 0 {
-			hash = util.GetSha1(val.Photo.Photo75)
-			hashes = append(hashes, fmt.Sprintf("%x", hash))
+		switch val.Type {
+		case "photo":
+			if len(val.Photo.Photo75) > 0 {
+				hash = util.GetSha1(val.Photo.Photo75)
+			}
+		case "doc":
+			if len(val.Doc.URL) > 0 {
+				hash = util.GetSha1(val.Doc.URL)
+			}
 		}
+		hashes = append(hashes, fmt.Sprintf("%x", hash))
 	}
 	return !existRepostByFingerprints(hashes), hashes
 }
@@ -181,8 +188,7 @@ func main() {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					if !existRepostByID(postID) {
 						unique, fingerprints := checkOnUniqueness(val)
-						fmt.Println(unique, fingerprints)
-						if unique || len(fingerprints) == 0 {
+						if unique {
 							repostID = doRepost(postID, fingerprints, info.ID, group.SourceID, group.Message)
 							if repostID == 0 {
 								fmt.Println("Unsuccess try do repost")
