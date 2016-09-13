@@ -1,4 +1,4 @@
-FROM lafin/armhf-alpine-golang:latest
+FROM lafin/alpine-golang:armhf-1.7.1
 
 ADD . /go/src/github.com/lafin/bof
 
