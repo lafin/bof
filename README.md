@@ -1,10 +1,8 @@
-## Best of <something>
+### Best of ___something___
+[![Build Status](https://travis-ci.org/lafin/bof.svg?branch=master)](https://travis-ci.org/lafin/bof)
 ___
 
 ```
-$ docker run -d --restart=always -p 27017:27017 --name mongo -d mongo
-$ git clone https://github.com/lafin/bof.git
-$ cd bof
-$ docker build -t bof .
-$ docker run -e "CLIENT_ID=<...>" -e "CLIENT_EMAIL=<...>" -e "CLIENT_PASSWORD=<...>" -e "DB_SERVER=mongo" --link mongo:mongo --rm bof
+$ git clone https://github.com/lafin/bof.git && cd bof
+$ CLIENT_ID=<...> CLIENT_EMAIL=<...> CLIENT_PASSWORD=<...> docker-compose -f docker-compose.armhf.yml up
 ```
