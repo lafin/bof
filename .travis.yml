@@ -10,7 +10,7 @@ install:
 
 before_script:
   - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-  - sed -ie "s/FROM lafin\/alpine-golang:platform/FROM lafin\/alpine-golang:${ARCH}\-1.7.1/" ${ARCH}/Dockerfile
+  - sed -ie "s/FROM lafin\/alpine-golang:platform/FROM lafin\/alpine-golang:${ARCH}\-1.7.3/" ${ARCH}/Dockerfile
 
 script:
   - docker build -t lafin/bof:${ARCH} ${ARCH}
