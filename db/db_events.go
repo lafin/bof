@@ -4,11 +4,11 @@ import "time"
 
 // Post - define struct of posts collection
 type Post struct {
-	Post         string
-	Fingerprints []string
-	From         int
-	To           int
-	Date         time.Time
+	Post  string
+	Files [][]byte
+	From  int
+	To    int
+	Date  time.Time
 }
 
 // Group - define struct of groups collection

@@ -1,7 +1,6 @@
-package util
+package main
 
 import (
-	"crypto/sha1"
 	"crypto/tls"
 	"io/ioutil"
 	"log"
@@ -21,12 +20,11 @@ func Client() *http.Client {
 		}
 		client = &http.Client{Transport: transport}
 	})
-
 	return client
 }
 
-// GetSha1 - return sha1 hashsum for file by url
-func GetSha1(url string) []byte {
+// GetData - return data for file by url
+func GetData(url string) []byte {
 	client := Client()
 	res, err := client.Get(url)
 	if err != nil {
@@ -38,9 +36,5 @@ func GetSha1(url string) []byte {
 		log.Fatal(err)
 	}
 	defer res.Body.Close()
-
-	hasher := sha1.New()
-	hasher.Write([]byte(body))
-
-	return hasher.Sum(nil)
+	return []byte(body)
 }
