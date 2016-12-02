@@ -2,18 +2,16 @@ package main
 
 import (
 	"fmt"
+	"github.com/lafin/bof/api"
+	"github.com/lafin/bof/db"
+	mgo "gopkg.in/mgo.v2"
+	"gopkg.in/mgo.v2/bson"
 	"log"
 	"os"
 	"regexp"
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/lafin/bof/api"
-	"github.com/lafin/bof/db"
-	"github.com/lafin/bof/util"
-	mgo "gopkg.in/mgo.v2"
-	"gopkg.in/mgo.v2/bson"
 )
 
 func addGroup(typeGroup string, sourceName string, sourceID int, destinationID int, border float32) {
@@ -63,39 +61,49 @@ func existRepostByID(postID string) bool {
 	return true
 }
 
-func existRepostByFingerprints(fingerprints []string) bool {
+func existRepostByFiles(files [][]byte) bool {
 	post, err := getPostQuery()
 	if err != nil {
 		return false
 	}
-	record := db.Post{}
-	err = post.Find(bson.M{"fingerprints": fingerprints}).One(&record)
+	records := []db.Post{}
+	err = post.Find(bson.M{"files": bson.M{"$exists": true}}).All(&records)
 	if err != nil {
 		return false
 	}
+
+	if len(records) == 0 {
+		return false
+	}
+
+	// for _, record := range records {
+	// 	fmt.Println(record.Post)
+	// }
+
 	return true
 }
 
-func checkOnUniqueness(post api.PostItem) (bool, []string) {
-	var hashes []string
-	var hash []byte
+func checkOnUniqueness(post api.PostItem) (bool, [][]byte) {
+	files := make([][]byte, 5)
+	var file []byte
+
 	for _, val := range post.Attachments {
 		switch val.Type {
 		case "photo":
 			if len(val.Photo.Photo75) > 0 {
-				hash = util.GetSha1(val.Photo.Photo75)
+				file = GetData(val.Photo.Photo75)
 			}
 		case "doc":
 			if len(val.Doc.URL) > 0 {
-				hash = util.GetSha1(val.Doc.URL)
+				file = GetData(val.Doc.URL)
 			}
 		}
-		hashes = append(hashes, fmt.Sprintf("%x", hash))
+		files = append(files, file)
 	}
-	return !existRepostByFingerprints(hashes), hashes
+	return !existRepostByFiles(files), files
 }
 
-func doRepost(postID string, fingerprints []string, from, to int, message string) int {
+func doRepost(postID string, files [][]byte, from, to int, message string) int {
 	post, err := db.PostQuery()
 	if err != nil {
 		log.Fatal(err)
@@ -110,7 +118,7 @@ func doRepost(postID string, fingerprints []string, from, to int, message string
 
 	fmt.Println(repost.Response.Success)
 	if repost.Response.Success == 1 {
-		err = post.Insert(&db.Post{postID, fingerprints, from, to, time.Now()})
+		err = post.Insert(&db.Post{postID, files, from, to, time.Now()})
 		if err != nil {
 			log.Fatal(err)
 			return 0
@@ -187,9 +195,9 @@ func main() {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					if !existRepostByID(postID) {
-						unique, fingerprints := checkOnUniqueness(val)
+						unique, files := checkOnUniqueness(val)
 						if unique {
-							repostID = doRepost(postID, fingerprints, info.ID, group.SourceID, group.Message)
+							repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
 							if repostID == 0 {
 								fmt.Println("Unsuccess try do repost")
 								return

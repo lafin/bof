@@ -1,9 +1,9 @@
 package db
 
 import (
-	"time"
-
 	"gopkg.in/mgo.v2"
+	"log"
+	"time"
 )
 
 var session *mgo.Session
@@ -24,19 +24,15 @@ func Connect(dbServerAddress string) (*mgo.Session, error) {
 func PostQuery() (*mgo.Collection, error) {
 	connect := session.DB("bof").C("post")
 
-	duration, _ := time.ParseDuration("30d")
+	duration, err := time.ParseDuration("720h")
+	if err != nil {
+		log.Fatal(err)
+		return nil, err
+	}
 	index := mgo.Index{
 		Key:         []string{"post"},
 		Unique:      true,
 		ExpireAfter: duration,
-	}
-	err := connect.EnsureIndex(index)
-	if err != nil {
-		return nil, err
-	}
-
-	index = mgo.Index{
-		Key: []string{"fingerprints"},
 	}
 	err = connect.EnsureIndex(index)
 	if err != nil {

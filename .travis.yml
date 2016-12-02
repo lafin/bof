@@ -1,6 +1,10 @@
 language: bash
 services: docker
 
+branches:
+  only:
+    - master
+
 env:
   - ARCH=x86_64
   - ARCH=armhf
@@ -10,11 +14,11 @@ install:
 
 before_script:
   - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-  - sed -ie "s/FROM lafin\/alpine-golang:platform/FROM lafin\/alpine-golang:${ARCH}\-1.7.3/" ${ARCH}/Dockerfile
+  - sed -ie "s/FROM lafin\/alpine-golang:platform/FROM lafin\/alpine-golang:${ARCH}\-1.7.4/" ${ARCH}/Dockerfile
 
 script:
   - docker build -t lafin/bof:${ARCH} ${ARCH}
 
 after_success:
-  - docker login -e="$DOCKER_EMAIL" -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
+  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
   - docker push lafin/bof
