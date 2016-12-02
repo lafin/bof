@@ -66,11 +66,20 @@ func existRepostByFiles(files [][]byte) bool {
 	if err != nil {
 		return false
 	}
-	record := db.Post{}
-	err = post.Find(bson.M{"files": files}).One(&record)
+	records := []db.Post{}
+	err = post.Find(bson.M{"files": bson.M{"$exists": true}}).All(&records)
 	if err != nil {
 		return false
 	}
+
+	if len(records) == 0 {
+		return false
+	}
+
+	// for _, record := range records {
+	// 	fmt.Println(record.Post)
+	// }
+
 	return true
 }
 
@@ -180,22 +189,20 @@ func main() {
 
 			border := int(getMaxCountLikes(posts) * group.Border)
 			items := posts.Response.Items
-			// var repostID int
+			var repostID int
 			var postID string
 			for _, val := range items {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					if !existRepostByID(postID) {
-						_, files := checkOnUniqueness(val)
-						fmt.Println(files)
-						return
-						// if unique {
-						// 	repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
-						// 	if repostID == 0 {
-						// 		fmt.Println("Unsuccess try do repost")
-						// 		return
-						// 	}
-						// }
+						unique, files := checkOnUniqueness(val)
+						if unique {
+							repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
+							if repostID == 0 {
+								fmt.Println("Unsuccess try do repost")
+								return
+							}
+						}
 					}
 				}
 			}
