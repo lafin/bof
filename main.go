@@ -195,14 +195,15 @@ func main() {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					if !existRepostByID(postID) {
-						unique, files := checkOnUniqueness(val)
-						if unique {
-							repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
-							if repostID == 0 {
-								fmt.Println("Unsuccess try do repost")
-								return
-							}
+						// unique, files := checkOnUniqueness(val)
+						_, files := checkOnUniqueness(val)
+						// if unique {
+						repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
+						if repostID == 0 {
+							fmt.Println("Unsuccess try do repost")
+							return
 						}
+						// }
 					}
 				}
 			}
