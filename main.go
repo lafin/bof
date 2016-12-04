@@ -128,7 +128,12 @@ func doRepost(postID string, files [][]byte, from, to int, message string) int {
 	}
 
 	if repost.Response.Success == 1 {
-		err = post.Insert(&db.Post{postID, files, from, to, time.Now()})
+		err = post.Insert(&db.Post{
+			Post:  postID,
+			Files: files,
+			From:  from,
+			To:    to,
+			Date:  time.Now()})
 		if err != nil {
 			log.Fatal(err)
 			return 0
