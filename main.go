@@ -61,26 +61,37 @@ func existRepostByID(postID string) bool {
 	return true
 }
 
-func existRepostByFiles(files [][]byte) bool {
+func existRepostByFiles(files [][]byte, postContext api.PostItem) bool {
 	post, err := getPostQuery()
 	if err != nil {
 		return false
 	}
 	records := []db.Post{}
-	err = post.Find(bson.M{"files": bson.M{"$exists": true}}).All(&records)
+	err = post.Find(bson.M{"files": bson.M{"$exists": true}}).Sort("date").All(&records)
 	if err != nil {
 		return false
 	}
 
-	if len(records) == 0 {
-		return false
+	for _, record := range records {
+		for _, storedFile := range record.Files {
+			if len(storedFile) != 0 {
+				for _, file := range files {
+					if len(file) != 0 {
+						percent, err := Compare(storedFile, file)
+						if err != nil {
+							log.Fatal(err)
+						} else {
+							if percent < 0.5 {
+								return true
+							}
+						}
+					}
+				}
+			}
+		}
 	}
 
-	// for _, record := range records {
-	// 	fmt.Println(record.Post)
-	// }
-
-	return true
+	return false
 }
 
 func checkOnUniqueness(post api.PostItem) (bool, [][]byte) {
@@ -100,7 +111,7 @@ func checkOnUniqueness(post api.PostItem) (bool, [][]byte) {
 		}
 		files = append(files, file)
 	}
-	return !existRepostByFiles(files), files
+	return !existRepostByFiles(files, post), files
 }
 
 func doRepost(postID string, files [][]byte, from, to int, message string) int {
@@ -116,7 +127,6 @@ func doRepost(postID string, files [][]byte, from, to int, message string) int {
 		return 0
 	}
 
-	fmt.Println(repost.Response.Success)
 	if repost.Response.Success == 1 {
 		err = post.Insert(&db.Post{postID, files, from, to, time.Now()})
 		if err != nil {
@@ -195,15 +205,17 @@ func main() {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					if !existRepostByID(postID) {
-						// unique, files := checkOnUniqueness(val)
-						_, files := checkOnUniqueness(val)
-						// if unique {
-						repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
-						if repostID == 0 {
-							fmt.Println("Unsuccess try do repost")
-							return
+						unique, files := checkOnUniqueness(val)
+						if unique {
+							repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
+							if repostID == 1 {
+								fmt.Println("Reposted")
+							} else {
+								fmt.Println("Unsuccess try do repost")
+								defer session.Close()
+								return
+							}
 						}
-						// }
 					}
 				}
 			}

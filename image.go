@@ -7,25 +7,36 @@ import (
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
-	"log"
 )
 
-func decodeImage(data []byte) image.Image {
+func decodeImage(data []byte) (image.Image, error) {
 	reader := bytes.NewReader(data)
 	img, _, err := image.Decode(reader)
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, err
 	}
-	return img
+	return img, nil
 }
 
 // Compare - return percentage the difference of images
-func Compare(img1, img2 []byte) float64 {
+func Compare(bytes1, bytes2 []byte) (float64, error) {
 	newDiffer := imgdiff.NewPerceptual(2.2, 100.0, 45.0, 1.0, false)
-	res, n, err := newDiffer.Compare(decodeImage(img1), decodeImage(img2))
+	image1, err := decodeImage(bytes1)
 	if err != nil {
-		log.Fatal(err)
+		return 0, err
 	}
-	return float64(n) / float64(res.Bounds().Dx()*res.Bounds().Dy())
+	image2, err := decodeImage(bytes2)
+	if err != nil {
+		return 0, err
+	}
+	var res image.Image
+	var n int
+	res, n, err = newDiffer.Compare(image1, image2)
+	if err != nil {
+		if err.Error() == "images have different sizes" {
+			return 100, nil
+		}
+		return 0, err
+	}
+	return float64(n) / float64(res.Bounds().Dx()*res.Bounds().Dy()), nil
 }
