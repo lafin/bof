@@ -81,7 +81,9 @@ func existRepostByFiles(files [][]byte, postContext api.PostItem) bool {
 						if err != nil {
 							log.Fatal(err)
 						} else {
-							if percent < 0.5 {
+							if percent < 0.15 {
+								postID := "wall" + strconv.Itoa(postContext.OwnerID) + "_" + strconv.Itoa(postContext.ID)
+								log.Println("filtered", record.Post, postID, percent)
 								return true
 							}
 						}

@@ -3,6 +3,6 @@
 ___
 
 ```
-$ git clone https://github.com/lafin/bof.git && cd bof
+curl -O https://raw.githubusercontent.com/lafin/bof/master/docker-compose.armhf.yml
 $ CLIENT_ID=<...> CLIENT_EMAIL=<...> CLIENT_PASSWORD=<...> docker-compose -f docker-compose.armhf.yml up
 ```
