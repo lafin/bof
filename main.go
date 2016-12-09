@@ -81,7 +81,7 @@ func existRepostByFiles(files [][]byte, postContext api.PostItem) bool {
 						if err != nil {
 							log.Fatal(err)
 						} else {
-							if percent < 0.15 {
+							if percent < 0.05 {
 								postID := "wall" + strconv.Itoa(postContext.OwnerID) + "_" + strconv.Itoa(postContext.ID)
 								log.Println("filtered", record.Post, postID, percent)
 								return true
@@ -96,7 +96,7 @@ func existRepostByFiles(files [][]byte, postContext api.PostItem) bool {
 	return false
 }
 
-func checkOnUniqueness(post api.PostItem) (bool, [][]byte) {
+func getUniqueFiles(post api.PostItem) [][]byte {
 	files := make([][]byte, 5)
 	var file []byte
 
@@ -113,23 +113,20 @@ func checkOnUniqueness(post api.PostItem) (bool, [][]byte) {
 		}
 		files = append(files, file)
 	}
-	return !existRepostByFiles(files, post), files
+	found := existRepostByFiles(files, post)
+	if found {
+		files = nil
+	}
+	return files
 }
 
-func doRepost(postID string, files [][]byte, from, to int, message string) int {
+func doRepost(postID string, files [][]byte, from, to int, message string) (bool, error) {
 	post, err := db.PostQuery()
 	if err != nil {
-		log.Fatal(err)
-		return 0
+		return false, err
 	}
 
-	repost, err := api.DoRepost(postID, to, message)
-	if err != nil {
-		log.Fatal(err)
-		return 0
-	}
-
-	if repost.Response.Success == 1 {
+	if files == nil {
 		err = post.Insert(&db.Post{
 			Post:  postID,
 			Files: files,
@@ -137,12 +134,27 @@ func doRepost(postID string, files [][]byte, from, to int, message string) int {
 			To:    to,
 			Date:  time.Now()})
 		if err != nil {
-			log.Fatal(err)
-			return 0
+			return false, err
 		}
-		return repost.Response.PostID
+	} else {
+		repost, err := api.DoRepost(postID, to, message)
+		if err != nil {
+			return false, err
+		}
+		if repost.Response.Success == 1 {
+			err = post.Insert(&db.Post{
+				Post:  postID,
+				Files: files,
+				From:  from,
+				To:    to,
+				Date:  time.Now()})
+			if err != nil {
+				return false, err
+			}
+			return true, nil
+		}
 	}
-	return 0
+	return false, nil
 }
 
 func getMaxCountLikes(posts *api.Post) float32 {
@@ -206,22 +218,22 @@ func main() {
 
 			border := int(getMaxCountLikes(posts) * group.Border)
 			items := posts.Response.Items
-			var repostID int
+			var reposted bool
 			var postID string
 			for _, val := range items {
 				if val.IsPinned == 0 && val.Likes.Count > border {
 					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
 					if !existRepostByID(postID) {
-						unique, files := checkOnUniqueness(val)
-						if unique {
-							repostID = doRepost(postID, files, info.ID, group.SourceID, group.Message)
-							if repostID == 1 {
+						files := getUniqueFiles(val)
+						reposted, err = doRepost(postID, files, info.ID, group.SourceID, group.Message)
+						if err == nil {
+							if reposted {
 								fmt.Println("Reposted")
 							} else {
-								fmt.Println("Unsuccess try do repost")
-								defer session.Close()
-								return
+								fmt.Println("Skipped")
 							}
+						} else {
+							log.Fatal(err)
 						}
 					}
 				}
