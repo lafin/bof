@@ -16,7 +16,6 @@ func Connect(dbServerAddress string) (*mgo.Session, error) {
 		return nil, err
 	}
 	session.SetMode(mgo.Monotonic, true)
-
 	return session, nil
 }
 
@@ -38,7 +37,6 @@ func PostQuery() (*mgo.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return connect, nil
 }
 
@@ -56,6 +54,21 @@ func GroupQuery() (*mgo.Collection, error) {
 	if err != nil {
 		return nil, err
 	}
-
 	return connect, nil
+}
+
+// GetGroups - get list of groups
+func GetGroups() []Group {
+	group, err := GroupQuery()
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	records := []Group{}
+	err = group.Find(nil).All(&records)
+	if err != nil {
+		log.Fatal(err)
+		return nil
+	}
+	return records
 }

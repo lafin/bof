@@ -3,45 +3,12 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"io/ioutil"
-	"net/http"
-	"net/http/cookiejar"
 	"net/url"
 	"regexp"
 	"strconv"
-	"sync"
 )
 
-var once sync.Once
-var client *http.Client
 var accessToken string
-
-func getData(url string) ([]byte, error) {
-	client := Client()
-	response, err := client.Get(url)
-	if err != nil {
-		return nil, err
-	}
-
-	defer response.Body.Close()
-	body, err := ioutil.ReadAll(response.Body)
-	if err != nil {
-		return nil, err
-	}
-	return body, nil
-}
-
-// Client - get instance of http client
-func Client() *http.Client {
-	once.Do(func() {
-		cookieJar, _ := cookiejar.New(nil)
-		client = &http.Client{
-			Jar: cookieJar,
-		}
-	})
-
-	return client
-}
 
 // GetAccessToken - get access toket for authorize on the vk.com
 func GetAccessToken(clientID, email, pass string) (string, error) {
@@ -50,7 +17,7 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 	}
 
 	client := Client()
-	data, err := getData(AuthURL + "/authorize?client_id=" + clientID + "&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v=" + APIVersion)
+	data, err := GetData(AuthURL + "/authorize?client_id=" + clientID + "&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v=" + APIVersion)
 	if err != nil {
 		return "", err
 	}
@@ -86,7 +53,7 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 
 // GetPosts - get list of posts
 func GetPosts(groupID, count string) (*Posts, error) {
-	data, err := getData(APIURL + "/method/wall.get?&owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/wall.get?&owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -100,7 +67,7 @@ func GetPosts(groupID, count string) (*Posts, error) {
 
 // GetGroupsInfo - get group info
 func GetGroupsInfo(groupIDs, fields string) (*Groups, error) {
-	data, err := getData(APIURL + "/method/groups.getById?&group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/groups.getById?&group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +81,7 @@ func GetGroupsInfo(groupIDs, fields string) (*Groups, error) {
 
 // DoRepost - do repost the post
 func DoRepost(object string, groupID int, message string) (*ResponseRepost, error) {
-	data, err := getData(APIURL + "/method/wall.repost?&object=" + object + "&group_id=" + strconv.Itoa(groupID) + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/wall.repost?&object=" + object + "&group_id=" + strconv.Itoa(groupID) + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +95,7 @@ func DoRepost(object string, groupID int, message string) (*ResponseRepost, erro
 
 // DoPost - do post the post
 func DoPost(groupID int, attachments, message string) (*ResponsePost, error) {
-	data, err := getData(APIURL + "/method/wall.post?&owner_id=-" + strconv.Itoa(groupID) + "&from_group=1&mark_as_ads=0&attachments=" + attachments + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/wall.post?&owner_id=-" + strconv.Itoa(groupID) + "&from_group=1&mark_as_ads=0&attachments=" + attachments + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -138,4 +105,45 @@ func DoPost(groupID int, attachments, message string) (*ResponsePost, error) {
 		return nil, err
 	}
 	return &post, nil
+}
+
+// GetMaxCountLikes - return max likes in list of posts
+func (p *Posts) GetMaxCountLikes() float32 {
+	max := 0
+	for _, item := range p.Response.Items {
+		if item.Likes.Count > max && item.IsPinned == 0 {
+			max = item.Likes.Count
+		}
+	}
+	return float32(max)
+}
+
+// GetUniqueFiles - get lists of files
+func (p *Post) GetUniqueFiles() ([][]byte, []string) {
+	var attachments []string
+	var attachment string
+	var files [][]byte
+	var file []byte
+	var err error
+
+	for _, item := range p.Attachments {
+		switch item.Type {
+		case "photo":
+			if len(item.Photo.Photo75) > 0 {
+				file, err = GetData(item.Photo.Photo75)
+				attachment = item.Type + strconv.Itoa(item.Photo.OwnerID) + "_" + strconv.Itoa(item.Photo.ID)
+			}
+		case "doc":
+			if len(item.Doc.URL) > 0 {
+				file, err = GetData(item.Doc.URL)
+				attachment = item.Type + strconv.Itoa(item.Doc.OwnerID) + "_" + strconv.Itoa(item.Doc.ID)
+			}
+		}
+		if err != nil {
+			return nil, nil
+		}
+		files = append(files, file)
+		attachments = append(attachments, attachment)
+	}
+	return files, attachments
 }

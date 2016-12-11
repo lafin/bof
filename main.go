@@ -3,7 +3,6 @@ package main
 import (
 	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
-	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/url"
@@ -14,34 +13,11 @@ import (
 	"time"
 )
 
-func getGroups() []db.Group {
-	group, err := db.GroupQuery()
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	}
-	records := []db.Group{}
-	err = group.Find(nil).All(&records)
-	if err != nil {
-		log.Fatal(err)
-		return nil
-	}
-	return records
-}
-
-func getPostQuery() (*mgo.Collection, error) {
+func existRepostByID(info *api.Group, item *api.Post) bool {
+	postID := getPostID(info, item)
 	post, err := db.PostQuery()
 	if err != nil {
 		log.Fatal(err)
-		return nil, err
-	}
-	return post, nil
-}
-
-func existRepostByID(info *api.Group, item *api.Post) bool {
-	postID := getPostID(info, item)
-	post, err := getPostQuery()
-	if err != nil {
 		return false
 	}
 	record := db.Post{}
@@ -53,8 +29,9 @@ func existRepostByID(info *api.Group, item *api.Post) bool {
 }
 
 func existRepostByFiles(files [][]byte) bool {
-	post, err := getPostQuery()
+	post, err := db.PostQuery()
 	if err != nil {
+		log.Fatal(err)
 		return false
 	}
 	records := []db.Post{}
@@ -81,33 +58,7 @@ func existRepostByFiles(files [][]byte) bool {
 			}
 		}
 	}
-
 	return false
-}
-
-func getUniqueFiles(post *api.Post) ([][]byte, []string) {
-	var attachments []string
-	var attachment string
-	var files [][]byte
-	var file []byte
-
-	for _, item := range post.Attachments {
-		switch item.Type {
-		case "photo":
-			if len(item.Photo.Photo75) > 0 {
-				file = GetData(item.Photo.Photo75)
-				attachment = item.Type + strconv.Itoa(item.Photo.OwnerID) + "_" + strconv.Itoa(item.Photo.ID)
-			}
-		case "doc":
-			if len(item.Doc.URL) > 0 {
-				file = GetData(item.Doc.URL)
-				attachment = item.Type + strconv.Itoa(item.Doc.OwnerID) + "_" + strconv.Itoa(item.Doc.ID)
-			}
-		}
-		files = append(files, file)
-		attachments = append(attachments, attachment)
-	}
-	return files, attachments
 }
 
 func getPostID(info *api.Group, item *api.Post) string {
@@ -159,28 +110,18 @@ func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Gr
 	return false, nil
 }
 
-func getMaxCountLikes(posts *api.Posts) float32 {
-	max := 0
-	for _, item := range posts.Response.Items {
-		if item.Likes.Count > max && item.IsPinned == 0 {
-			max = item.Likes.Count
-		}
-	}
-	return float32(max)
-}
-
 func main() {
 	clientID := os.Getenv("CLIENT_ID")
 	email := os.Getenv("CLIENT_EMAIL")
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
 
+	log.Println("start")
 	_, err := api.GetAccessToken(clientID, email, password)
 	if err != nil {
 		log.Fatal(err)
 		return
 	}
-	log.Println("start")
 
 	session, err := db.Connect(dbServerAddress)
 	if err != nil {
@@ -188,7 +129,7 @@ func main() {
 		return
 	}
 
-	groups := getGroups()
+	groups := db.GetGroups()
 	for _, group := range groups {
 		groupInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {
@@ -216,11 +157,11 @@ func main() {
 				return
 			}
 
-			border := int(getMaxCountLikes(posts) * group.Border)
+			border := int(posts.GetMaxCountLikes() * group.Border)
 			for _, item := range posts.Response.Items {
 				if item.IsPinned == 0 && item.Likes.Count > border {
 					if !existRepostByID(&info, &item) {
-						files, attachments := getUniqueFiles(&item)
+						files, attachments := item.GetUniqueFiles()
 						if existRepostByFiles(files) {
 							files = nil
 						}
