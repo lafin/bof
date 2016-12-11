@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
 	mgo "gopkg.in/mgo.v2"
@@ -30,7 +29,6 @@ func getGroups() []db.Group {
 		return nil
 	}
 	records := []db.Group{}
-
 	err = group.Find(nil).All(&records)
 	if err != nil {
 		log.Fatal(err)
@@ -61,7 +59,7 @@ func existRepostByID(postID string) bool {
 	return true
 }
 
-func existRepostByFiles(files [][]byte, postContext api.PostItem) bool {
+func existRepostByFiles(files [][]byte, postContext api.Post) bool {
 	post, err := getPostQuery()
 	if err != nil {
 		return false
@@ -96,7 +94,7 @@ func existRepostByFiles(files [][]byte, postContext api.PostItem) bool {
 	return false
 }
 
-func getUniqueFiles(post api.PostItem) [][]byte {
+func getUniqueFiles(post api.Post) [][]byte {
 	files := make([][]byte, 5)
 	var file []byte
 
@@ -120,11 +118,19 @@ func getUniqueFiles(post api.PostItem) [][]byte {
 	return files
 }
 
-func doRepost(postID string, files [][]byte, from, to int, message string) (bool, error) {
+func getPostID(info *api.Group, item *api.Post) string {
+	return "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(item.ID)
+}
+
+func doRepost(postID string, files [][]byte, info *api.Group, group *db.Group) (bool, error) {
 	post, err := db.PostQuery()
 	if err != nil {
 		return false, err
 	}
+
+	from := info.ID
+	to := group.SourceID
+	message := group.Message
 
 	if files == nil {
 		err = post.Insert(&db.Post{
@@ -157,12 +163,12 @@ func doRepost(postID string, files [][]byte, from, to int, message string) (bool
 	return false, nil
 }
 
-func getMaxCountLikes(posts *api.Post) float32 {
+func getMaxCountLikes(posts *api.Posts) float32 {
 	max := 0
 	items := posts.Response.Items
-	for _, val := range items {
-		if val.Likes.Count > max && val.IsPinned == 0 {
-			max = val.Likes.Count
+	for _, item := range items {
+		if item.Likes.Count > max && item.IsPinned == 0 {
+			max = item.Likes.Count
 		}
 	}
 	return float32(max)
@@ -179,7 +185,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
-	fmt.Println("connected")
+	log.Println("start")
 
 	session, err := db.Connect(dbServerAddress)
 	if err != nil {
@@ -220,20 +226,22 @@ func main() {
 			items := posts.Response.Items
 			var reposted bool
 			var postID string
-			for _, val := range items {
-				if val.IsPinned == 0 && val.Likes.Count > border {
-					postID = "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(val.ID)
+			for _, item := range items {
+				if item.IsPinned == 0 && item.Likes.Count > border {
+					postID = getPostID(&info, &item)
 					if !existRepostByID(postID) {
-						files := getUniqueFiles(val)
-						reposted, err = doRepost(postID, files, info.ID, group.SourceID, group.Message)
+						files := getUniqueFiles(item)
+						reposted, err = doRepost(postID, files, &info, &group)
 						if err == nil {
 							if reposted {
-								fmt.Println("Reposted")
+								log.Println("Reposted")
 							} else {
-								fmt.Println("Skipped")
+								log.Println("Skipped")
 							}
 						} else {
 							log.Fatal(err)
+							defer session.Close()
+							return
 						}
 					}
 				}
@@ -241,5 +249,6 @@ func main() {
 		}
 	}
 
+	log.Println("done")
 	defer session.Close()
 }

@@ -7,32 +7,35 @@ const (
 	APIVersion = "5.50"
 )
 
-// Group - struct of json object the Group
-type Group struct {
-	Response []struct {
-		AdminLevel int `json:"admin_level"`
-		ID         int `json:"id"`
-		IsAdmin    int `json:"is_admin"`
-		IsClosed   int `json:"is_closed"`
-		IsMember   int `json:"is_member"`
-		Links      []struct {
-			ID       int    `json:"id"`
-			Name     string `json:"name"`
-			Photo100 string `json:"photo_100"`
-			Photo50  string `json:"photo_50"`
-			URL      string `json:"url"`
-		} `json:"links"`
-		Name       string `json:"name"`
-		Photo100   string `json:"photo_100"`
-		Photo200   string `json:"photo_200"`
-		Photo50    string `json:"photo_50"`
-		ScreenName string `json:"screen_name"`
-		Type       string `json:"type"`
-	} `json:"response"`
+// Groups - struct of json object the Groups
+type Groups struct {
+	Response []Group
 }
 
-// PostItem - struct of json object the Item
-type PostItem struct {
+// Group - struct of json object the Group
+type Group struct {
+	AdminLevel int `json:"admin_level"`
+	ID         int `json:"id"`
+	IsAdmin    int `json:"is_admin"`
+	IsClosed   int `json:"is_closed"`
+	IsMember   int `json:"is_member"`
+	Links      []struct {
+		ID       int    `json:"id"`
+		Name     string `json:"name"`
+		Photo100 string `json:"photo_100"`
+		Photo50  string `json:"photo_50"`
+		URL      string `json:"url"`
+	} `json:"links"`
+	Name       string `json:"name"`
+	Photo100   string `json:"photo_100"`
+	Photo200   string `json:"photo_200"`
+	Photo50    string `json:"photo_50"`
+	ScreenName string `json:"screen_name"`
+	Type       string `json:"type"`
+}
+
+// Post - struct of json object the Item
+type Post struct {
 	Attachments []struct {
 		Photo struct {
 			AccessKey string `json:"access_key"`
@@ -103,20 +106,27 @@ type PostItem struct {
 	Text string `json:"text"`
 }
 
-// Post - struct of json object the Post
-type Post struct {
+// Posts - struct of json object the Posts
+type Posts struct {
 	Response struct {
-		Count int        `json:"count"`
-		Items []PostItem `json:"items"`
+		Count int    `json:"count"`
+		Items []Post `json:"items"`
 	} `json:"response"`
 }
 
-// Repost - struct of response after repost of post
-type Repost struct {
+// ResponseRepost - struct of response after repost of post
+type ResponseRepost struct {
 	Response struct {
 		LikesCount   int `json:"likes_count"`
 		PostID       int `json:"post_id"`
 		RepostsCount int `json:"reposts_count"`
 		Success      int `json:"success"`
+	} `json:"response"`
+}
+
+// ResponsePost - struct of response after post of post
+type ResponsePost struct {
+	Response struct {
+		PostID int `json:"post_id"`
 	} `json:"response"`
 }

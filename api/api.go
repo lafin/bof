@@ -85,13 +85,13 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 }
 
 // GetPosts - get list of posts
-func GetPosts(groupID, count string) (*Post, error) {
+func GetPosts(groupID, count string) (*Posts, error) {
 	data, err := getData(APIURL + "/method/wall.get?&owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	var posts Post
+	var posts Posts
 	if err := json.Unmarshal(data, &posts); err != nil {
 		return nil, err
 	}
@@ -99,29 +99,43 @@ func GetPosts(groupID, count string) (*Post, error) {
 }
 
 // GetGroupsInfo - get group info
-func GetGroupsInfo(groupIDs, fields string) (*Group, error) {
+func GetGroupsInfo(groupIDs, fields string) (*Groups, error) {
 	data, err := getData(APIURL + "/method/groups.getById?&group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	var group Group
-	if err := json.Unmarshal(data, &group); err != nil {
+	var groups Groups
+	if err := json.Unmarshal(data, &groups); err != nil {
 		return nil, err
 	}
-	return &group, nil
+	return &groups, nil
 }
 
 // DoRepost - do repost the post
-func DoRepost(object string, groupID int, message string) (*Repost, error) {
+func DoRepost(object string, groupID int, message string) (*ResponseRepost, error) {
 	data, err := getData(APIURL + "/method/wall.repost?&object=" + object + "&group_id=" + strconv.Itoa(groupID) + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
 
-	var repost Repost
+	var repost ResponseRepost
 	if err := json.Unmarshal(data, &repost); err != nil {
 		return nil, err
 	}
 	return &repost, nil
+}
+
+// DoPost - do post the post
+func DoPost(groupID int, attachments, message string) (*ResponsePost, error) {
+	data, err := getData(APIURL + "/method/wall.post?&owner_id=-" + strconv.Itoa(groupID) + "&from_group=1&mark_as_ads=0&attachments=" + attachments + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	var post ResponsePost
+	if err := json.Unmarshal(data, &post); err != nil {
+		return nil, err
+	}
+	return &post, nil
 }
