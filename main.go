@@ -14,15 +14,6 @@ import (
 	"time"
 )
 
-func addGroup(typeGroup string, sourceName string, sourceID int, destinationID int, border float32) {
-	group, err := db.GroupQuery()
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	group.Insert(&db.Group{SourceID: sourceID, Border: border})
-}
-
 func getGroups() []db.Group {
 	group, err := db.GroupQuery()
 	if err != nil {
@@ -61,7 +52,7 @@ func existRepostByID(info *api.Group, item *api.Post) bool {
 	return true
 }
 
-func existRepostByFiles(files [][]byte, postContext api.Post) bool {
+func existRepostByFiles(files [][]byte) bool {
 	post, err := getPostQuery()
 	if err != nil {
 		return false
@@ -82,8 +73,6 @@ func existRepostByFiles(files [][]byte, postContext api.Post) bool {
 							log.Fatal(err)
 						} else {
 							if percent < 0.05 {
-								postID := "wall" + strconv.Itoa(postContext.OwnerID) + "_" + strconv.Itoa(postContext.ID)
-								log.Println("filtered", record.Post, postID, percent)
 								return true
 							}
 						}
@@ -96,7 +85,7 @@ func existRepostByFiles(files [][]byte, postContext api.Post) bool {
 	return false
 }
 
-func getUniqueFiles(post api.Post) ([][]byte, []string) {
+func getUniqueFiles(post *api.Post) ([][]byte, []string) {
 	var attachments []string
 	var attachment string
 	var files [][]byte
@@ -117,10 +106,6 @@ func getUniqueFiles(post api.Post) ([][]byte, []string) {
 		}
 		files = append(files, file)
 		attachments = append(attachments, attachment)
-	}
-	found := existRepostByFiles(files, post)
-	if found {
-		files = nil
 	}
 	return files, attachments
 }
@@ -176,8 +161,7 @@ func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Gr
 
 func getMaxCountLikes(posts *api.Posts) float32 {
 	max := 0
-	items := posts.Response.Items
-	for _, item := range items {
+	for _, item := range posts.Response.Items {
 		if item.Likes.Count > max && item.IsPinned == 0 {
 			max = item.Likes.Count
 		}
@@ -236,7 +220,10 @@ func main() {
 			for _, item := range posts.Response.Items {
 				if item.IsPinned == 0 && item.Likes.Count > border {
 					if !existRepostByID(&info, &item) {
-						files, attachments := getUniqueFiles(item)
+						files, attachments := getUniqueFiles(&item)
+						if existRepostByFiles(files) {
+							files = nil
+						}
 						reposted, err := doRepost(files, attachments, &item, &info, &group)
 						if err == nil {
 							if reposted {

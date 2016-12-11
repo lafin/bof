@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"net/http/cookiejar"
 	"sync"
 )
 
@@ -18,7 +19,8 @@ func Client() *http.Client {
 			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
 			DisableKeepAlives: true,
 		}
-		client = &http.Client{Transport: transport}
+		cookieJar, _ := cookiejar.New(nil)
+		client = &http.Client{Transport: transport, Jar: cookieJar}
 	})
 	return client
 }
