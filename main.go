@@ -6,6 +6,7 @@ import (
 	mgo "gopkg.in/mgo.v2"
 	"gopkg.in/mgo.v2/bson"
 	"log"
+	"net/url"
 	"os"
 	"regexp"
 	"strconv"
@@ -46,7 +47,8 @@ func getPostQuery() (*mgo.Collection, error) {
 	return post, nil
 }
 
-func existRepostByID(postID string) bool {
+func existRepostByID(info *api.Group, item *api.Post) bool {
+	postID := getPostID(info, item)
 	post, err := getPostQuery()
 	if err != nil {
 		return false
@@ -94,35 +96,41 @@ func existRepostByFiles(files [][]byte, postContext api.Post) bool {
 	return false
 }
 
-func getUniqueFiles(post api.Post) [][]byte {
-	files := make([][]byte, 5)
+func getUniqueFiles(post api.Post) ([][]byte, []string) {
+	var attachments []string
+	var attachment string
+	var files [][]byte
 	var file []byte
 
-	for _, val := range post.Attachments {
-		switch val.Type {
+	for _, item := range post.Attachments {
+		switch item.Type {
 		case "photo":
-			if len(val.Photo.Photo75) > 0 {
-				file = GetData(val.Photo.Photo75)
+			if len(item.Photo.Photo75) > 0 {
+				file = GetData(item.Photo.Photo75)
+				attachment = item.Type + strconv.Itoa(item.Photo.OwnerID) + "_" + strconv.Itoa(item.Photo.ID)
 			}
 		case "doc":
-			if len(val.Doc.URL) > 0 {
-				file = GetData(val.Doc.URL)
+			if len(item.Doc.URL) > 0 {
+				file = GetData(item.Doc.URL)
+				attachment = item.Type + strconv.Itoa(item.Doc.OwnerID) + "_" + strconv.Itoa(item.Doc.ID)
 			}
 		}
 		files = append(files, file)
+		attachments = append(attachments, attachment)
 	}
 	found := existRepostByFiles(files, post)
 	if found {
 		files = nil
 	}
-	return files
+	return files, attachments
 }
 
 func getPostID(info *api.Group, item *api.Post) string {
 	return "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(item.ID)
 }
 
-func doRepost(postID string, files [][]byte, info *api.Group, group *db.Group) (bool, error) {
+func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Group, group *db.Group) (bool, error) {
+	postID := getPostID(info, item)
 	post, err := db.PostQuery()
 	if err != nil {
 		return false, err
@@ -143,11 +151,14 @@ func doRepost(postID string, files [][]byte, info *api.Group, group *db.Group) (
 			return false, err
 		}
 	} else {
-		repost, err := api.DoRepost(postID, to, message)
+		if len(item.Text) > 0 {
+			message = item.Text + " " + message
+		}
+		repost, err := api.DoPost(to, strings.Join(attachments, ","), url.QueryEscape(message))
 		if err != nil {
 			return false, err
 		}
-		if repost.Response.Success == 1 {
+		if repost.Response.PostID > 0 {
 			err = post.Insert(&db.Post{
 				Post:  postID,
 				Files: files,
@@ -214,8 +225,7 @@ func main() {
 			return
 		}
 
-		infos := groupsInfo.Response
-		for _, info := range infos {
+		for _, info := range groupsInfo.Response {
 			posts, err := api.GetPosts(strconv.Itoa(info.ID), "50")
 			if err != nil {
 				log.Fatal(err)
@@ -223,15 +233,11 @@ func main() {
 			}
 
 			border := int(getMaxCountLikes(posts) * group.Border)
-			items := posts.Response.Items
-			var reposted bool
-			var postID string
-			for _, item := range items {
+			for _, item := range posts.Response.Items {
 				if item.IsPinned == 0 && item.Likes.Count > border {
-					postID = getPostID(&info, &item)
-					if !existRepostByID(postID) {
-						files := getUniqueFiles(item)
-						reposted, err = doRepost(postID, files, &info, &group)
+					if !existRepostByID(&info, &item) {
+						files, attachments := getUniqueFiles(item)
+						reposted, err := doRepost(files, attachments, &item, &info, &group)
 						if err == nil {
 							if reposted {
 								log.Println("Reposted")
