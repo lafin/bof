@@ -121,12 +121,13 @@ func (p *Posts) GetMaxCountLikes() float32 {
 // GetUniqueFiles - get lists of files
 func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 	var attachments []string
-	var attachment string
 	var files [][]byte
-	var file []byte
-	var err error
 
 	for _, item := range p.Attachments {
+		var err error
+		var file []byte
+		var attachment string
+
 		switch item.Type {
 		case "photo":
 			if len(item.Photo.Photo75) > 0 {
@@ -135,14 +136,15 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 			}
 		case "doc":
 			if len(item.Doc.URL) > 0 {
-				file, err = GetData(item.Doc.URL)
 				attachment = item.Type + strconv.Itoa(item.Doc.OwnerID) + "_" + strconv.Itoa(item.Doc.ID)
 			}
 		}
 		if err != nil {
 			return nil, nil
 		}
-		files = append(files, file)
+		if file != nil {
+			files = append(files, file)
+		}
 		attachments = append(attachments, attachment)
 	}
 	return files, attachments

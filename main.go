@@ -162,8 +162,14 @@ func main() {
 				if item.IsPinned == 0 && item.Likes.Count > border {
 					if !existRepostByID(&info, &item) {
 						files, attachments := item.GetUniqueFiles()
-						if existRepostByFiles(files) {
-							files = nil
+						if files == nil {
+							for _, attachment := range attachments {
+								files = append(files, []byte(attachment))
+							}
+						} else {
+							if existRepostByFiles(files) {
+								files = nil
+							}
 						}
 						reposted, err := doRepost(files, attachments, &item, &info, &group)
 						if err == nil {
