@@ -76,7 +76,7 @@ func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Gr
 	to := group.SourceID
 	message := group.Message
 
-	if files == nil {
+	if attachments == nil {
 		err = post.Insert(&db.Post{
 			Post:  postID,
 			Files: files,
@@ -131,20 +131,21 @@ func main() {
 
 	groups := db.GetGroups()
 	for _, group := range groups {
-		groupInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
+		groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {
 			log.Fatal(err)
 			return
 		}
 
-		links := groupInfo.Response[0].Links
-		r, _ := regexp.Compile("https://vk.com/(.*?)$")
 		var ids []string
-		for _, link := range links {
-			ids = append(ids, r.FindStringSubmatch(link.URL)[1])
+		for _, info := range groupsInfo.Response {
+			r, _ := regexp.Compile("https://vk.com/(.*?)$")
+			for _, link := range info.Links {
+				ids = append(ids, r.FindStringSubmatch(link.URL)[1])
+			}
 		}
 
-		groupsInfo, err := api.GetGroupsInfo(strings.Join(ids, ","), "")
+		groupsInfo, err = api.GetGroupsInfo(strings.Join(ids, ","), "")
 		if err != nil {
 			log.Fatal(err)
 			return
@@ -162,14 +163,9 @@ func main() {
 				if item.IsPinned == 0 && item.Likes.Count > border {
 					if !existRepostByID(&info, &item) {
 						files, attachments := item.GetUniqueFiles()
-						if files == nil {
-							for _, attachment := range attachments {
-								files = append(files, []byte(attachment))
-							}
-						} else {
-							if existRepostByFiles(files) {
-								files = nil
-							}
+						if files != nil && existRepostByFiles(files) {
+							files = nil
+							attachments = nil
 						}
 						reposted, err := doRepost(files, attachments, &item, &info, &group)
 						if err == nil {

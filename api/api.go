@@ -53,7 +53,7 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 
 // GetPosts - get list of posts
 func GetPosts(groupID, count string) (*Posts, error) {
-	data, err := GetData(APIURL + "/method/wall.get?&owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/wall.get?owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func GetPosts(groupID, count string) (*Posts, error) {
 
 // GetGroupsInfo - get group info
 func GetGroupsInfo(groupIDs, fields string) (*Groups, error) {
-	data, err := GetData(APIURL + "/method/groups.getById?&group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/groups.getById?group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -81,7 +81,7 @@ func GetGroupsInfo(groupIDs, fields string) (*Groups, error) {
 
 // DoRepost - do repost the post
 func DoRepost(object string, groupID int, message string) (*ResponseRepost, error) {
-	data, err := GetData(APIURL + "/method/wall.repost?&object=" + object + "&group_id=" + strconv.Itoa(groupID) + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/wall.repost?object=" + object + "&group_id=" + strconv.Itoa(groupID) + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -95,7 +95,7 @@ func DoRepost(object string, groupID int, message string) (*ResponseRepost, erro
 
 // DoPost - do post the post
 func DoPost(groupID int, attachments, message string) (*ResponsePost, error) {
-	data, err := GetData(APIURL + "/method/wall.post?&owner_id=-" + strconv.Itoa(groupID) + "&from_group=1&mark_as_ads=0&attachments=" + attachments + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
+	data, err := GetData(APIURL + "/method/wall.post?owner_id=-" + strconv.Itoa(groupID) + "&from_group=1&mark_as_ads=0&attachments=" + attachments + "&message=" + message + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
