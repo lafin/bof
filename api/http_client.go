@@ -3,9 +3,11 @@ package api
 import (
 	"crypto/tls"
 	"io/ioutil"
+	"net"
 	"net/http"
 	"net/http/cookiejar"
 	"sync"
+	"time"
 )
 
 var once sync.Once
@@ -31,11 +33,19 @@ func GetData(url string) ([]byte, error) {
 func Client() *http.Client {
 	once.Do(func() {
 		transport := &http.Transport{
-			TLSClientConfig:   &tls.Config{InsecureSkipVerify: true},
-			DisableKeepAlives: true,
+			Dial: (&net.Dialer{
+				Timeout: 10 * time.Second,
+			}).Dial,
+			TLSHandshakeTimeout: 5 * time.Second,
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
+			DisableKeepAlives:   true,
 		}
 		cookieJar, _ := cookiejar.New(nil)
-		client = &http.Client{Transport: transport, Jar: cookieJar}
+		client = &http.Client{
+			Timeout:   time.Second * 300,
+			Transport: transport,
+			Jar:       cookieJar,
+		}
 	})
 
 	return client
