@@ -130,3 +130,25 @@ type ResponsePost struct {
 		PostID int `json:"post_id"`
 	} `json:"response"`
 }
+
+// ResponseUsersOfGroup - struct of response list users of group
+type ResponseUsersOfGroup struct {
+	Response struct {
+		Count int `json:"count"`
+		Items []struct {
+			FirstName   string `json:"first_name"`
+			ID          int    `json:"id"`
+			LastName    string `json:"last_name"`
+			Deactivated string `json:"deactivated"`
+			LastSeen    struct {
+				Platform int `json:"platform"`
+				Time     int `json:"time"`
+			} `json:"last_seen"`
+		} `json:"items"`
+	} `json:"response"`
+}
+
+// ResponseRemoveUser - struct of response status of removing the user
+type ResponseRemoveUser struct {
+	Response int `json:"response"`
+}

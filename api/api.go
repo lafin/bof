@@ -17,7 +17,7 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 	}
 
 	client := Client()
-	data, err := GetData(AuthURL + "/authorize?client_id=" + clientID + "&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall&v=&response_type=token&v=" + APIVersion)
+	data, err := GetData(AuthURL + "/authorize?client_id=" + clientID + "&redirect_uri=https://oauth.vk.com/blank.html&display=mobile&scope=wall,groups,friends&response_type=token&v=" + APIVersion)
 	if err != nil {
 		return "", err
 	}
@@ -148,4 +148,32 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 		attachments = append(attachments, attachment)
 	}
 	return files, attachments
+}
+
+// GetListUsersofGroup - get list deactivated users
+func GetListUsersofGroup(groupID int, offset int, count int) (*ResponseUsersOfGroup, error) {
+	data, err := GetData(APIURL + "/method/groups.getMembers?group_id=" + strconv.Itoa(groupID) + "&offset=" + strconv.Itoa(offset) + "&count=" + strconv.Itoa(count) + "&fields=last_seen&v=" + APIVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	var users ResponseUsersOfGroup
+	if err := json.Unmarshal(data, &users); err != nil {
+		return nil, err
+	}
+	return &users, nil
+}
+
+// RemoveUserFromGroup - remove user from group
+func RemoveUserFromGroup(groupID int, userID int) (*ResponseRemoveUser, error) {
+	data, err := GetData(APIURL + "/method/groups.removeUser?group_id=" + strconv.Itoa(groupID) + "&user_id=" + strconv.Itoa(userID) + "&access_token=" + accessToken + "&v=" + APIVersion)
+	if err != nil {
+		return nil, err
+	}
+
+	var status ResponseRemoveUser
+	if err := json.Unmarshal(data, &status); err != nil {
+		return nil, err
+	}
+	return &status, nil
 }

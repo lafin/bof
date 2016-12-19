@@ -110,6 +110,26 @@ func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Gr
 	return false, nil
 }
 
+func doRemoveDogs(groupID int) {
+	users, err := api.GetListUsersofGroup(groupID, 0, 1000)
+	if err != nil {
+		log.Fatal(err)
+		return
+	}
+	for _, user := range users.Response.Items {
+		if user.Deactivated == "banned" || user.Deactivated == "deleted" {
+			status, err := api.RemoveUserFromGroup(groupID, user.ID)
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			if status.Response != 1 {
+				break
+			}
+		}
+	}
+}
+
 func main() {
 	clientID := os.Getenv("CLIENT_ID")
 	email := os.Getenv("CLIENT_EMAIL")
@@ -131,6 +151,8 @@ func main() {
 
 	groups := db.GetGroups()
 	for _, group := range groups {
+		go doRemoveDogs(group.SourceID)
+
 		groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {
 			log.Fatal(err)
