@@ -151,7 +151,7 @@ func main() {
 
 	groups := db.GetGroups()
 	for _, group := range groups {
-		go doRemoveDogs(group.SourceID)
+		// go doRemoveDogs(group.SourceID)
 
 		groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {
