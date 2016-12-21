@@ -1,4 +1,4 @@
-package api
+package httpclient
 
 import (
 	"crypto/tls"
@@ -34,9 +34,9 @@ func Client() *http.Client {
 	once.Do(func() {
 		transport := &http.Transport{
 			Dial: (&net.Dialer{
-				Timeout: 10 * time.Second,
+				Timeout: time.Second * 10,
 			}).Dial,
-			TLSHandshakeTimeout: 5 * time.Second,
+			TLSHandshakeTimeout: time.Second * 5,
 			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 			DisableKeepAlives:   true,
 		}
