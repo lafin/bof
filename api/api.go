@@ -42,6 +42,21 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 		return "", err
 	}
 
+	r, _ = regexp.Compile("__q_hash=.*?")
+	if r.MatchString(response.Request.URL.String()) {
+		data, err := httpclient.GetData(response.Request.URL.String())
+		if err != nil {
+			return "", err
+		}
+
+		r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
+		match := r.FindStringSubmatch(string(data))
+		response, err = client.PostForm(match[1], url.Values{})
+		if err != nil {
+			return "", err
+		}
+	}
+
 	r, _ = regexp.Compile("access_token=(.*?)&")
 	match = r.FindStringSubmatch(response.Request.URL.String())
 	if len(match) > 0 {
