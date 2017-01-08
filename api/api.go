@@ -3,7 +3,7 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"github.com/lafin/httpclient"
+	"github.com/lafin/go-httpclient"
 	"net/url"
 	"regexp"
 	"strconv"

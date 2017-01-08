@@ -136,8 +136,13 @@ func main() {
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
 
+	maxCountCheckInOneTime, err := strconv.ParseInt(os.Getenv("MAX_COUNT_CHECK_IN_ONE_TIME"), 10, 32)
+	if err != nil || maxCountCheckInOneTime == 0 {
+		maxCountCheckInOneTime = 3
+	}
+
 	log.Println("start")
-	_, err := api.GetAccessToken(clientID, email, password)
+	_, err = api.GetAccessToken(clientID, email, password)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -195,6 +200,12 @@ func main() {
 								log.Println("Reposted")
 							} else {
 								log.Println("Skipped")
+							}
+							maxCountCheckInOneTime--
+							if maxCountCheckInOneTime == 0 {
+								log.Println("interrupted")
+								defer session.Close()
+								return
 							}
 						} else {
 							log.Fatal(err)
