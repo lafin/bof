@@ -29,8 +29,7 @@ func PostQuery() (*mgo.Collection, error) {
 		return nil, err
 	}
 	index := mgo.Index{
-		Key:         []string{"post"},
-		Unique:      true,
+		Key:         []string{"date"},
 		ExpireAfter: duration,
 	}
 	err = connect.EnsureIndex(index)
