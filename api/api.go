@@ -154,6 +154,8 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 			if len(item.Doc.URL) > 0 {
 				attachment = item.Type + strconv.Itoa(item.Doc.OwnerID) + "_" + strconv.Itoa(item.Doc.ID)
 			}
+		case "video":
+			attachment = item.Type + strconv.Itoa(item.Video.OwnerID) + "_" + strconv.Itoa(item.Video.ID)
 		}
 		if err != nil {
 			return nil, nil

@@ -37,6 +37,22 @@ type Group struct {
 // Post - struct of json object the Item
 type Post struct {
 	Attachments []struct {
+		Video struct {
+			AccessKey   string `json:"access_key"`
+			CanAdd      int    `json:"can_add"`
+			Comments    int    `json:"comments"`
+			Date        int    `json:"date"`
+			Description string `json:"description"`
+			Duration    int    `json:"duration"`
+			ID          int    `json:"id"`
+			OwnerID     int    `json:"owner_id"`
+			Photo130    string `json:"photo_130"`
+			Photo320    string `json:"photo_320"`
+			Photo640    string `json:"photo_640"`
+			Platform    string `json:"platform"`
+			Title       string `json:"title"`
+			Views       int    `json:"views"`
+		} `json:"video"`
 		Photo struct {
 			AccessKey string `json:"access_key"`
 			AlbumID   int    `json:"album_id"`
