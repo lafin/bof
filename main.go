@@ -111,21 +111,35 @@ func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Gr
 }
 
 func doRemoveDogs(groupID int) {
-	users, err := api.GetListUsersofGroup(groupID, 0, 1000)
-	if err != nil {
-		log.Fatal(err)
-		return
-	}
-	for _, user := range users.Response.Items {
-		if user.Deactivated == "banned" || user.Deactivated == "deleted" {
-			status, err := api.RemoveUserFromGroup(groupID, user.ID)
-			if err != nil {
-				log.Fatal(err)
-				return
+	start := 0
+	offset := 1000
+	maxRemoveDogs := 3
+
+	for {
+		users, err := api.GetListUsersofGroup(groupID, start, offset)
+		if err != nil {
+			log.Fatal(err)
+			return
+		}
+		for _, user := range users.Response.Items {
+			if (user.IsBanned() && maxRemoveDogs > 0) || user.IsDeleted() {
+				if user.IsBanned() {
+					maxRemoveDogs--
+				}
+				status, err := api.RemoveUserFromGroup(groupID, user.ID)
+				if err != nil {
+					log.Fatal(err)
+					return
+				}
+				if status.Response != 1 {
+					break
+				}
 			}
-			if status.Response != 1 {
-				break
-			}
+		}
+		if len(users.Response.Items) < offset {
+			break
+		} else {
+			start += offset
 		}
 	}
 }
@@ -156,7 +170,7 @@ func main() {
 
 	groups := db.GetGroups()
 	for _, group := range groups {
-		// go doRemoveDogs(group.SourceID)
+		go doRemoveDogs(group.SourceID)
 
 		groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {

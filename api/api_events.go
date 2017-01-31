@@ -150,18 +150,31 @@ type ResponsePost struct {
 // ResponseUsersOfGroup - struct of response list users of group
 type ResponseUsersOfGroup struct {
 	Response struct {
-		Count int `json:"count"`
-		Items []struct {
-			FirstName   string `json:"first_name"`
-			ID          int    `json:"id"`
-			LastName    string `json:"last_name"`
-			Deactivated string `json:"deactivated"`
-			LastSeen    struct {
-				Platform int `json:"platform"`
-				Time     int `json:"time"`
-			} `json:"last_seen"`
-		} `json:"items"`
+		Count int                   `json:"count"`
+		Items []ResponseUserOfGroup `json:"items"`
 	} `json:"response"`
+}
+
+// ResponseUserOfGroup - struct of response list user of group
+type ResponseUserOfGroup struct {
+	FirstName   string `json:"first_name"`
+	ID          int    `json:"id"`
+	LastName    string `json:"last_name"`
+	Deactivated string `json:"deactivated"`
+	LastSeen    struct {
+		Platform int `json:"platform"`
+		Time     int `json:"time"`
+	} `json:"last_seen"`
+}
+
+// IsBanned - returned true if the user was banned
+func (r *ResponseUserOfGroup) IsBanned() bool {
+	return r.Deactivated == "banned"
+}
+
+// IsDeleted - returned true if the user was deleted
+func (r *ResponseUserOfGroup) IsDeleted() bool {
+	return r.Deactivated == "deleted"
 }
 
 // ResponseRemoveUser - struct of response status of removing the user
