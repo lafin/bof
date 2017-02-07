@@ -113,7 +113,9 @@ func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Gr
 func doRemoveDogs(groupID int) {
 	start := 0
 	offset := 1000
-	maxRemoveDogs := 3
+
+	totalUsers := 0
+	var usersList []int
 
 	for {
 		users, err := api.GetListUsersofGroup(groupID, start, offset)
@@ -121,25 +123,32 @@ func doRemoveDogs(groupID int) {
 			log.Fatal(err)
 			return
 		}
+
+		totalUsers += len(users.Response.Items)
 		for _, user := range users.Response.Items {
-			if (user.IsBanned() && maxRemoveDogs > 0) || user.IsDeleted() {
-				if user.IsBanned() {
-					maxRemoveDogs--
-				}
-				status, err := api.RemoveUserFromGroup(groupID, user.ID)
-				if err != nil {
-					log.Fatal(err)
-					return
-				}
-				if status.Response != 1 {
-					break
-				}
+			if user.IsDeleted() || user.IsBanned() {
+				usersList = append(usersList, user.ID)
 			}
 		}
 		if len(users.Response.Items) < offset {
 			break
 		} else {
 			start += offset
+		}
+	}
+
+	percentBadUsers := float32(len(usersList) / totalUsers)
+	if percentBadUsers > 0.05 {
+		count := int(float32(totalUsers) * percentBadUsers)
+		for index := 0; index < count; index++ {
+			status, err := api.RemoveUserFromGroup(groupID, usersList[index])
+			if err != nil {
+				log.Fatal(err)
+				return
+			}
+			if status.Response != 1 {
+				break
+			}
 		}
 	}
 }
