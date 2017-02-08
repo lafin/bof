@@ -1,6 +1,7 @@
 package main
 
 import (
+	"errors"
 	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
 	"gopkg.in/mgo.v2/bson"
@@ -65,49 +66,22 @@ func getPostID(info *api.Group, item *api.Post) string {
 	return "wall-" + strconv.Itoa(info.ID) + "_" + strconv.Itoa(item.ID)
 }
 
-func doRepost(files [][]byte, attachments []string, item *api.Post, info *api.Group, group *db.Group) (bool, error) {
-	postID := getPostID(info, item)
-	post, err := db.PostQuery()
+func doRepost(attachments []string, item *api.Post, group *db.Group) (bool, error) {
+	to := group.SourceID
+	message := group.Message
+
+	if len(item.Text) > 0 {
+		message = item.Text + " " + message
+	}
+	repost, err := api.DoPost(to, strings.Join(attachments, ","), url.QueryEscape(message))
 	if err != nil {
 		return false, err
 	}
 
-	from := info.ID
-	to := group.SourceID
-	message := group.Message
-
-	if attachments == nil {
-		err = post.Insert(&db.Post{
-			Post:  postID,
-			Files: files,
-			From:  from,
-			To:    to,
-			Date:  time.Now()})
-		if err != nil {
-			return false, err
-		}
-	} else {
-		if len(item.Text) > 0 {
-			message = item.Text + " " + message
-		}
-		repost, err := api.DoPost(to, strings.Join(attachments, ","), url.QueryEscape(message))
-		if err != nil {
-			return false, err
-		}
-		if repost.Response.PostID > 0 {
-			err = post.Insert(&db.Post{
-				Post:  postID,
-				Files: files,
-				From:  from,
-				To:    to,
-				Date:  time.Now()})
-			if err != nil {
-				return false, err
-			}
-			return true, nil
-		}
+	if repost.Error.ErrorCode > 0 {
+		err = errors.New(repost.Error.ErrorMsg)
 	}
-	return false, nil
+	return repost.Response.PostID > 0, err
 }
 
 func doRemoveDogs(groupID int) {
@@ -161,7 +135,7 @@ func main() {
 
 	maxCountCheckInOneTime, err := strconv.ParseInt(os.Getenv("MAX_COUNT_CHECK_IN_ONE_TIME"), 10, 32)
 	if err != nil || maxCountCheckInOneTime == 0 {
-		maxCountCheckInOneTime = 3
+		maxCountCheckInOneTime = 2
 	}
 
 	log.Println("start")
@@ -176,6 +150,7 @@ func main() {
 		log.Fatal(err)
 		return
 	}
+	defer session.Close()
 
 	groups := db.GetGroups()
 	for _, group := range groups {
@@ -212,27 +187,61 @@ func main() {
 			for _, item := range posts.Response.Items {
 				if item.IsPinned == 0 && item.Likes.Count > border {
 					if !existRepostByID(&info, &item) {
+						postID := getPostID(&info, &item)
+						post, err := db.PostQuery()
+						if err != nil {
+							log.Fatal(err)
+							return
+						}
+
+						from := info.ID
+						to := group.SourceID
+						record := &db.Post{
+							Post:  postID,
+							Files: nil,
+							From:  from,
+							To:    to,
+							Date:  time.Now()}
+						err = post.Insert(record)
+						if err != nil {
+							log.Fatal(err)
+							return
+						}
+
 						files, attachments := item.GetUniqueFiles()
 						if files != nil && existRepostByFiles(files) {
 							files = nil
 							attachments = nil
 						}
-						reposted, err := doRepost(files, attachments, &item, &info, &group)
-						if err == nil {
-							if reposted {
-								log.Println("Reposted")
+
+						reposted := false
+						if attachments != nil {
+							reposted, err = doRepost(attachments, &item, &group)
+							if err == nil {
+								record.Files = files
+								err = post.Update(bson.M{"post": postID}, record)
+								if err != nil {
+									log.Fatal(err)
+									return
+								}
 							} else {
-								log.Println("Skipped")
+								err = post.Remove(bson.M{"post": postID})
 							}
-							maxCountCheckInOneTime--
-							if maxCountCheckInOneTime == 0 {
-								log.Println("interrupted")
-								defer session.Close()
+
+							if err != nil {
+								log.Fatal(err)
 								return
 							}
+						}
+
+						if reposted {
+							log.Println("Reposted")
 						} else {
-							log.Fatal(err)
-							defer session.Close()
+							log.Println("Skipped")
+						}
+						maxCountCheckInOneTime--
+						if maxCountCheckInOneTime == 0 {
+							log.Println("interrupted")
 							return
 						}
 					}
@@ -242,5 +251,4 @@ func main() {
 	}
 
 	log.Println("done")
-	defer session.Close()
 }

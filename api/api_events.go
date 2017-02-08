@@ -142,6 +142,14 @@ type ResponseRepost struct {
 
 // ResponsePost - struct of response after post of post
 type ResponsePost struct {
+	Error struct {
+		ErrorCode     int    `json:"error_code"`
+		ErrorMsg      string `json:"error_msg"`
+		RequestParams []struct {
+			Key   string `json:"key"`
+			Value string `json:"value"`
+		} `json:"request_params"`
+	} `json:"error"`
 	Response struct {
 		PostID int `json:"post_id"`
 	} `json:"response"`
