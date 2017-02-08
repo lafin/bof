@@ -71,7 +71,9 @@ func doRepost(attachments []string, item *api.Post, group *db.Group) (bool, erro
 	message := group.Message
 
 	if len(item.Text) > 0 {
-		message = item.Text + " " + message
+		r := regexp.MustCompile("(\\s+)?#\\w+(\\s+)?")
+		item.Text = r.ReplaceAllString(item.Text, " ")
+		message = strings.Trim(item.Text, " ") + " " + message
 	}
 	repost, err := api.DoPost(to, strings.Join(attachments, ","), url.QueryEscape(message))
 	if err != nil {
@@ -164,7 +166,7 @@ func main() {
 
 		var ids []string
 		for _, info := range groupsInfo.Response {
-			r, _ := regexp.Compile("https://vk.com/(.*?)$")
+			r := regexp.MustCompile("https://vk.com/(.*?)$")
 			for _, link := range info.Links {
 				ids = append(ids, r.FindStringSubmatch(link.URL)[1])
 			}

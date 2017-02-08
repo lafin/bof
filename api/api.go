@@ -23,11 +23,11 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 		return "", err
 	}
 
-	r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
+	r := regexp.MustCompile("<form method=\"post\" action=\"(.*?)\">")
 	match := r.FindStringSubmatch(string(data))
 	urlStr := match[1]
 
-	r, _ = regexp.Compile("<input type=\"hidden\" name=\"(.*?)\" value=\"(.*?)\" ?/?>")
+	r = regexp.MustCompile("<input type=\"hidden\" name=\"(.*?)\" value=\"(.*?)\" ?/?>")
 	matches := r.FindAllStringSubmatch(string(data), -1)
 
 	formData := url.Values{}
@@ -42,14 +42,14 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 		return "", err
 	}
 
-	r, _ = regexp.Compile("__q_hash=.*?")
+	r = regexp.MustCompile("__q_hash=.*?")
 	if r.MatchString(response.Request.URL.String()) {
 		data, err := httpclient.GetData(response.Request.URL.String())
 		if err != nil {
 			return "", err
 		}
 
-		r, _ := regexp.Compile("<form method=\"post\" action=\"(.*?)\">")
+		r := regexp.MustCompile("<form method=\"post\" action=\"(.*?)\">")
 		match := r.FindStringSubmatch(string(data))
 		response, err = client.PostForm(match[1], url.Values{})
 		if err != nil {
@@ -57,7 +57,7 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 		}
 	}
 
-	r, _ = regexp.Compile("access_token=(.*?)&")
+	r = regexp.MustCompile("access_token=(.*?)&")
 	match = r.FindStringSubmatch(response.Request.URL.String())
 	if len(match) > 0 {
 		accessToken = match[1]
