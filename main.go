@@ -71,7 +71,9 @@ func doRepost(attachments []string, item *api.Post, group *db.Group) (bool, erro
 	message := group.Message
 
 	if len(item.Text) > 0 {
-		r := regexp.MustCompile("(\\s+)?#\\w+(\\s+)?")
+		r := regexp.MustCompile("(\\n+|\\s+)?#(\\p{L}|\\p{P})+(\\n+|\\s+)?")
+		item.Text = r.ReplaceAllString(item.Text, " ")
+		r = regexp.MustCompile("(\\n|\\s)+")
 		item.Text = r.ReplaceAllString(item.Text, " ")
 		message = strings.Trim(item.Text, " ") + " " + message
 	}
