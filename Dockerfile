@@ -1,4 +1,4 @@
-FROM lafin/alpine-golang:platform
+FROM platform
 
 ADD . /go/src/github.com/lafin/bof
 RUN go install github.com/lafin/bof \

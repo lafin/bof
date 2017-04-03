@@ -2,12 +2,13 @@ package main
 
 import (
 	"bytes"
-	"github.com/oliamb/cutter"
-	"github.com/x1ddos/imgdiff"
 	"image"
 	_ "image/gif"
 	_ "image/jpeg"
 	_ "image/png"
+
+	"github.com/oliamb/cutter"
+	"github.com/x1ddos/imgdiff"
 )
 
 func decodeImage(data []byte) (image.Image, error) {

@@ -1,9 +1,10 @@
 package db
 
 import (
-	"gopkg.in/mgo.v2"
 	"log"
 	"time"
+
+	"gopkg.in/mgo.v2"
 )
 
 var session *mgo.Session

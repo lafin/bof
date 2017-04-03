@@ -2,9 +2,6 @@ package main
 
 import (
 	"errors"
-	"github.com/lafin/bof/api"
-	"github.com/lafin/bof/db"
-	"gopkg.in/mgo.v2/bson"
 	"log"
 	"net/url"
 	"os"
@@ -12,6 +9,10 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/lafin/bof/api"
+	"github.com/lafin/bof/db"
+	"gopkg.in/mgo.v2/bson"
 )
 
 func existRepostByID(info *api.Group, item *api.Post) bool {
@@ -115,8 +116,8 @@ func doRemoveDogs(groupID int) {
 		}
 	}
 
-	percentBadUsers := float32(len(usersList) / totalUsers)
-	if percentBadUsers > 0.05 {
+	percentBadUsers := float32(len(usersList)) / float32(totalUsers)
+	if percentBadUsers > minPercentOfBadUsers {
 		count := int(float32(totalUsers) * percentBadUsers)
 		for index := 0; index < count; index++ {
 			status, err := api.RemoveUserFromGroup(groupID, usersList[index])
@@ -131,19 +132,18 @@ func doRemoveDogs(groupID int) {
 	}
 }
 
+const maxCountCheckInOneTime int = 2
+const minPercentOfBadUsers float32 = 0.01
+
 func main() {
 	clientID := os.Getenv("CLIENT_ID")
 	email := os.Getenv("CLIENT_EMAIL")
 	password := os.Getenv("CLIENT_PASSWORD")
 	dbServerAddress := os.Getenv("DB_SERVER")
-
-	maxCountCheckInOneTime, err := strconv.ParseInt(os.Getenv("MAX_COUNT_CHECK_IN_ONE_TIME"), 10, 32)
-	if err != nil || maxCountCheckInOneTime == 0 {
-		maxCountCheckInOneTime = 2
-	}
+	countCheckIn := 0
 
 	log.Println("start")
-	_, err = api.GetAccessToken(clientID, email, password)
+	_, err := api.GetAccessToken(clientID, email, password)
 	if err != nil {
 		log.Fatal(err)
 		return
@@ -243,8 +243,8 @@ func main() {
 						} else {
 							log.Println("Skipped")
 						}
-						maxCountCheckInOneTime--
-						if maxCountCheckInOneTime == 0 {
+						countCheckIn++
+						if countCheckIn == maxCountCheckInOneTime {
 							log.Println("interrupted")
 							return
 						}

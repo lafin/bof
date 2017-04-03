@@ -3,10 +3,11 @@ package api
 import (
 	"encoding/json"
 	"errors"
-	"github.com/lafin/go-httpclient"
 	"net/url"
 	"regexp"
 	"strconv"
+
+	"github.com/lafin/go-httpclient"
 )
 
 var accessToken string
