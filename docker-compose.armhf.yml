@@ -2,8 +2,13 @@ web:
   image: lafin/bof:armhf
   links:
     - "mongo"
-  environment: 
+  environment:
     - "DB_SERVER=mongo"
+  logging:
+    driver: json-file
+    options:
+      max-size: "10m"
+      max-file: "5"
 
 mongo:
   image: "partlab/ubuntu-arm-mongodb"

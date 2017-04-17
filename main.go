@@ -12,6 +12,7 @@ import (
 
 	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
+	"github.com/lafin/bof/utils"
 	"gopkg.in/mgo.v2/bson"
 )
 
@@ -19,7 +20,7 @@ func existRepostByID(info *api.Group, item *api.Post) bool {
 	postID := getPostID(info, item)
 	post, err := db.PostQuery()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[existRepostByID] error: %s post_id: %s", err, postID)
 		return false
 	}
 	record := db.Post{}
@@ -33,7 +34,7 @@ func existRepostByID(info *api.Group, item *api.Post) bool {
 func existRepostByFiles(files [][]byte) bool {
 	post, err := db.PostQuery()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[existRepostByFiles] error: %s", err)
 		return false
 	}
 	records := []db.Post{}
@@ -47,9 +48,9 @@ func existRepostByFiles(files [][]byte) bool {
 			if len(storedFile) != 0 {
 				for _, file := range files {
 					if len(file) != 0 {
-						percent, err := Compare(storedFile, file)
+						percent, err := utils.Compare(storedFile, file)
 						if err != nil {
-							log.Fatal(err)
+							log.Fatalf("[existRepostByFiles] error: %s", err)
 						} else {
 							if percent < 0.05 {
 								return true
@@ -99,7 +100,7 @@ func doRemoveDogs(groupID int) {
 	for {
 		users, err := api.GetListUsersofGroup(groupID, start, offset)
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("[doRemoveDogs] error: %s", err)
 			return
 		}
 
@@ -120,14 +121,16 @@ func doRemoveDogs(groupID int) {
 	if percentBadUsers > minPercentOfBadUsers {
 		count := int(float32(totalUsers) * percentBadUsers)
 		for index := 0; index < count; index++ {
-			status, err := api.RemoveUserFromGroup(groupID, usersList[index])
+			userID := usersList[index]
+			status, err := api.RemoveUserFromGroup(groupID, userID)
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("[doRemoveDogs] error: %s", err)
 				return
 			}
 			if status.Response != 1 {
 				break
 			}
+			log.Printf("[doRemoveDogs] user_id: %d group_id: %d", userID, groupID)
 		}
 	}
 }
@@ -145,24 +148,28 @@ func main() {
 	log.Println("start")
 	_, err := api.GetAccessToken(clientID, email, password)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[main:api.GetAccessToken] error: %s", err)
 		return
 	}
 
 	session, err := db.Connect(dbServerAddress)
 	if err != nil {
-		log.Fatal(err)
+		log.Fatalf("[main:db.Connect] error: %s", err)
 		return
 	}
 	defer session.Close()
 
-	groups := db.GetGroups()
+	groups, err := db.GetGroups()
+	if err != nil {
+		log.Fatalf("[main:db.GetGroups] error: %s", err)
+		return
+	}
 	for _, group := range groups {
 		go doRemoveDogs(group.SourceID)
 
 		groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("[main:api.GetGroupsInfo] error: %s group_id: %d", err, group.SourceID)
 			return
 		}
 
@@ -176,14 +183,14 @@ func main() {
 
 		groupsInfo, err = api.GetGroupsInfo(strings.Join(ids, ","), "")
 		if err != nil {
-			log.Fatal(err)
+			log.Fatalf("[main:api.GetGroupsInfo] error: %s", err)
 			return
 		}
 
 		for _, info := range groupsInfo.Response {
 			posts, err := api.GetPosts(strconv.Itoa(info.ID), "50")
 			if err != nil {
-				log.Fatal(err)
+				log.Fatalf("[main:api.GetPosts] error: %s group_id: %d", err, info.ID)
 				return
 			}
 
@@ -194,7 +201,7 @@ func main() {
 						postID := getPostID(&info, &item)
 						post, err := db.PostQuery()
 						if err != nil {
-							log.Fatal(err)
+							log.Fatalf("[main:db.PostQuery] error: %s", err)
 							return
 						}
 
@@ -208,7 +215,7 @@ func main() {
 							Date:  time.Now()}
 						err = post.Insert(record)
 						if err != nil {
-							log.Fatal(err)
+							log.Fatalf("[main:post.Insert] error: %s", err)
 							return
 						}
 
@@ -225,7 +232,7 @@ func main() {
 								record.Files = files
 								err = post.Update(bson.M{"post": postID}, record)
 								if err != nil {
-									log.Fatal(err)
+									log.Fatalf("[main:post.Update] error: %s", err)
 									return
 								}
 							} else {
@@ -233,19 +240,19 @@ func main() {
 							}
 
 							if err != nil {
-								log.Fatal(err)
+								log.Fatalf("[main:doRepost] error: %s post_id: %s", err, postID)
 								return
 							}
 						}
 
 						if reposted {
-							log.Println("Reposted")
+							log.Printf("[main] reposted: %s", postID)
 						} else {
-							log.Println("Skipped")
+							log.Printf("[main] skipped: %s", postID)
 						}
 						countCheckIn++
 						if countCheckIn == maxCountCheckInOneTime {
-							log.Println("interrupted")
+							log.Printf("[main] interrupted: %s", postID)
 							return
 						}
 					}

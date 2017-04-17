@@ -1,7 +1,6 @@
 package db
 
 import (
-	"log"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -26,7 +25,6 @@ func PostQuery() (*mgo.Collection, error) {
 
 	duration, err := time.ParseDuration("720h")
 	if err != nil {
-		log.Fatal(err)
 		return nil, err
 	}
 	index := mgo.Index{
@@ -58,17 +56,15 @@ func GroupQuery() (*mgo.Collection, error) {
 }
 
 // GetGroups - get list of groups
-func GetGroups() []Group {
+func GetGroups() ([]Group, error) {
 	group, err := GroupQuery()
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, err
 	}
 	records := []Group{}
 	err = group.Find(nil).All(&records)
 	if err != nil {
-		log.Fatal(err)
-		return nil
+		return nil, err
 	}
-	return records
+	return records, nil
 }
