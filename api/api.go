@@ -70,7 +70,7 @@ func GetAccessToken(clientID, email, pass string) (string, error) {
 
 // GetPosts - get list of posts
 func GetPosts(groupID, count string) (*Posts, error) {
-	data, err := httpclient.GetData(APIURL + "/method/wall.get?owner_id=-" + groupID + "&count=" + count + "&filter=all&v=" + APIVersion)
+	data, err := httpclient.GetData(APIURL + "/method/wall.get?owner_id=-" + groupID + "&count=" + count + "&filter=all&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
