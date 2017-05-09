@@ -34,6 +34,35 @@ type Group struct {
 	Type       string `json:"type"`
 }
 
+type DocPreview struct {
+	Photo struct {
+		Sizes []struct {
+			Height int    `json:"height"`
+			Src    string `json:"src"`
+			Type   string `json:"type"`
+			Width  int    `json:"width"`
+		} `json:"sizes"`
+	} `json:"photo"`
+	Video struct {
+		FileSize int    `json:"file_size"`
+		Height   int    `json:"height"`
+		Src      string `json:"src"`
+		Width    int    `json:"width"`
+	} `json:"video"`
+}
+
+// GetSmallPreview - return preview with type "s" for gif's
+func (r *DocPreview) GetSmallPreview() string {
+	sizes := r.Photo.Sizes
+	for i := 0; i < len(sizes); i++ {
+		size := sizes[i]
+		if size.Type == "s" {
+			return size.Src
+		}
+	}
+	return ""
+}
+
 // Post - struct of json object the Item
 type Post struct {
 	Attachments []struct {
@@ -73,26 +102,11 @@ type Post struct {
 			Ext       string `json:"ext"`
 			ID        int    `json:"id"`
 			OwnerID   int    `json:"owner_id"`
-			Preview   struct {
-				Photo struct {
-					Sizes []struct {
-						Height int    `json:"height"`
-						Src    string `json:"src"`
-						Type   string `json:"type"`
-						Width  int    `json:"width"`
-					} `json:"sizes"`
-				} `json:"photo"`
-				Video struct {
-					FileSize int    `json:"file_size"`
-					Height   int    `json:"height"`
-					Src      string `json:"src"`
-					Width    int    `json:"width"`
-				} `json:"video"`
-			} `json:"preview"`
-			Size  int    `json:"size"`
-			Title string `json:"title"`
-			Type  int    `json:"type"`
-			URL   string `json:"url"`
+			Preview   DocPreview
+			Size      int    `json:"size"`
+			Title     string `json:"title"`
+			Type      int    `json:"type"`
+			URL       string `json:"url"`
 		} `json:"doc"`
 		Type string `json:"type"`
 	} `json:"attachments"`

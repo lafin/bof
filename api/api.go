@@ -144,19 +144,24 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 		var err error
 		var file []byte
 		var attachment string
+		var photoURL string
 
 		switch item.Type {
 		case "photo":
 			if len(item.Photo.Photo75) > 0 {
-				file, err = httpclient.GetData(item.Photo.Photo75)
+				photoURL = item.Photo.Photo75
 				attachment = item.Type + strconv.Itoa(item.Photo.OwnerID) + "_" + strconv.Itoa(item.Photo.ID) + "_" + item.Photo.AccessKey
 			}
 		case "doc":
 			if len(item.Doc.URL) > 0 {
+				photoURL = item.Doc.Preview.GetSmallPreview()
 				attachment = item.Type + strconv.Itoa(item.Doc.OwnerID) + "_" + strconv.Itoa(item.Doc.ID) + "_" + item.Doc.AccessKey
 			}
 		case "video":
 			attachment = item.Type + strconv.Itoa(item.Video.OwnerID) + "_" + strconv.Itoa(item.Video.ID) + "_" + item.Video.AccessKey
+		}
+		if photoURL != "" {
+			file, err = httpclient.GetData(photoURL)
 		}
 		if err != nil {
 			return nil, nil
