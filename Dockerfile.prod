@@ -1,0 +1,6 @@
+FROM scratch
+
+ARG GOARCH
+COPY ${GOARCH} bin
+
+CMD ["./bin"]

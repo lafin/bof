@@ -1,24 +1,20 @@
 language: bash
 services: docker
-
 branches:
   only:
     - master
-
 env:
-  - ARCH=x86_64
-  - ARCH=armhf
-
+  global:
+    - DOCKER_REPO=lafin/bof
+  matrix:
+    - ARCH=x86_64 GOOS=linux GOARCH=amd64 GOARM=
+    - ARCH=armhf GOOS=linux GOARCH=arm GOARM=7
 install:
   - git clone https://github.com/lafin/bof.git ${ARCH}/
-
-before_script:
-  - docker run --rm --privileged multiarch/qemu-user-static:register --reset
-  - sed -ie "s/FROM platform/FROM lafin\/alpine-golang:${ARCH}\-1.8/" ${ARCH}/Dockerfile
-
 script:
-  - docker build -t lafin/bof:${ARCH} ${ARCH}
-
+  - docker build --build-arg GOOS=${GOOS} --build-arg GOARCH=${GOARCH} --build-arg GOARM=${GOARM} --build-arg DOCKER_REPO=${DOCKER_REPO} -f ${ARCH}/Dockerfile.build -t ${DOCKER_REPO}:${ARCH} ${ARCH}
+  - docker run --name ${GOARCH} ${DOCKER_REPO}:${ARCH}
+  - docker cp ${GOARCH}:/go/src/github.com/${DOCKER_REPO}/${GOARCH} ${ARCH}/${GOARCH}
+  - docker build --build-arg GOARCH=${GOARCH} -f ${ARCH}/Dockerfile.prod -t ${DOCKER_REPO}:${ARCH} ${ARCH}
 after_success:
-  - docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD"
-  - docker push lafin/bof
+    - if [[ $TRAVIS_PULL_REQUEST == 'false' ]]; then docker login -u="$DOCKER_USERNAME" -p="$DOCKER_PASSWORD" && docker push $DOCKER_REPO; fi

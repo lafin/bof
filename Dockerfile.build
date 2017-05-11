@@ -1,0 +1,17 @@
+FROM golang:alpine
+
+ARG DOCKER_REPO
+ARG GOOS
+ENV GOOS $GOOS
+ARG GOARCH
+ENV GOARCH $GOARCH
+ARG GOARM
+ENV GOARM $GOARM
+
+RUN mkdir -p /go/src/github.com/$DOCKER_REPO
+WORKDIR /go/src/github.com/$DOCKER_REPO
+COPY . /go/src/github.com/$DOCKER_REPO
+
+RUN go build -o $GOARCH .
+
+CMD ["/bin/sh"]
