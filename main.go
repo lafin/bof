@@ -10,9 +10,9 @@ import (
 	"strings"
 	"time"
 
-	"github.com/lafin/bof/api"
 	"github.com/lafin/bof/db"
 	"github.com/lafin/bof/utils"
+	api "github.com/lafin/vk"
 	"gopkg.in/mgo.v2/bson"
 )
 

@@ -8,8 +8,15 @@ import (
 
 var session *mgo.Session
 
+type (
+	// Collection - ...
+	Collection = mgo.Collection
+	// Session - ...
+	Session = mgo.Session
+)
+
 // Connect - start session to the db
-func Connect(dbServerAddress string) (*mgo.Session, error) {
+func Connect(dbServerAddress string) (*Session, error) {
 	var err error
 	session, err = mgo.Dial(dbServerAddress)
 	if err != nil {
@@ -20,7 +27,7 @@ func Connect(dbServerAddress string) (*mgo.Session, error) {
 }
 
 // PostQuery - get connection for the post collection
-func PostQuery() (*mgo.Collection, error) {
+func PostQuery() (*Collection, error) {
 	connect := session.DB("bof").C("post")
 
 	duration, err := time.ParseDuration("720h")
@@ -39,7 +46,7 @@ func PostQuery() (*mgo.Collection, error) {
 }
 
 // GroupQuery - get connection for the group collection
-func GroupQuery() (*mgo.Collection, error) {
+func GroupQuery() (*Collection, error) {
 	connect := session.DB("bof").C("group")
 
 	index := mgo.Index{
