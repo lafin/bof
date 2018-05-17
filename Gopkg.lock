@@ -11,7 +11,7 @@
   branch = "master"
   name = "github.com/lafin/vk"
   packages = ["."]
-  revision = "cd573131b742d8bab99dfb316d98bf0faf905350"
+  revision = "059d2ce6b90ce552ac2c3d5467993c7cd8bd6722"
 
 [[projects]]
   name = "github.com/oliamb/cutter"
@@ -28,7 +28,13 @@
 [[projects]]
   branch = "v2"
   name = "gopkg.in/mgo.v2"
-  packages = [".","bson","internal/json","internal/sasl","internal/scram"]
+  packages = [
+    ".",
+    "bson",
+    "internal/json",
+    "internal/sasl",
+    "internal/scram"
+  ]
   revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
 
 [solve-meta]

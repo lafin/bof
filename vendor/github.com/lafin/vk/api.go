@@ -84,7 +84,7 @@ func GetPosts(groupID, count string) (*Posts, error) {
 
 // GetGroupsInfo - get group info
 func GetGroupsInfo(groupIDs, fields string) (*Groups, error) {
-	data, err := httpclient.GetData(APIURL + "/method/groups.getById?group_ids=" + groupIDs + "&fields=" + fields + "&v=" + APIVersion)
+	data, err := httpclient.GetData(APIURL + "/method/groups.getById?group_ids=" + groupIDs + "&fields=" + fields + "&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +176,7 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 
 // GetListUsersofGroup - get list deactivated users
 func GetListUsersofGroup(groupID int, offset int, count int) (*ResponseUsersOfGroup, error) {
-	data, err := httpclient.GetData(APIURL + "/method/groups.getMembers?group_id=" + strconv.Itoa(groupID) + "&offset=" + strconv.Itoa(offset) + "&count=" + strconv.Itoa(count) + "&fields=last_seen&v=" + APIVersion)
+	data, err := httpclient.GetData(APIURL + "/method/groups.getMembers?group_id=" + strconv.Itoa(groupID) + "&offset=" + strconv.Itoa(offset) + "&count=" + strconv.Itoa(count) + "&fields=last_seen&access_token=" + accessToken + "&v=" + APIVersion)
 	if err != nil {
 		return nil, err
 	}
