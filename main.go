@@ -135,12 +135,12 @@ func doRemoveDogs(groupID int) {
 	}
 }
 
-func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn int) {
+func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn *int) bool {
 	postID := getPostID(&info, &item)
 	post, err := db.PostQuery()
 	if err != nil {
 		log.Fatalf("[main:db.PostQuery] error: %s", err)
-		return
+		return false
 	}
 
 	from := info.ID
@@ -154,7 +154,7 @@ func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn 
 	err = post.Insert(record)
 	if err != nil {
 		log.Fatalf("[main:post.Insert] error: %s", err)
-		return
+		return false
 	}
 
 	files, attachments := item.GetUniqueFiles()
@@ -171,7 +171,7 @@ func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn 
 			err = post.Update(bson.M{"post": postID}, record)
 			if err != nil {
 				log.Fatalf("[main:post.Update] error: %s", err)
-				return
+				return false
 			}
 		} else {
 			err = post.Remove(bson.M{"post": postID})
@@ -179,23 +179,25 @@ func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn 
 
 		if err != nil {
 			log.Fatalf("[main:doRepost] error: %s post_id: %s", err, postID)
-			return
+			return false
 		}
 	}
 
 	if reposted {
+		*countCheckIn++
 		log.Printf("[main] reposted: %s", postID)
 	} else {
 		log.Printf("[main] skipped: %s", postID)
 	}
-	countCheckIn++
-	if countCheckIn == maxCountCheckInOneTime {
+	if *countCheckIn == maxCountCheckInOneTime {
 		log.Printf("[main] interrupted: %s", postID)
-		return
+		return false
 	}
+
+	return true
 }
 
-func checkSources(info api.Group, group db.Group, countCheckIn int) {
+func checkSources(info api.Group, group db.Group, countCheckIn *int) {
 	posts, err := api.GetPosts(strconv.Itoa(info.ID), "50")
 	if err != nil {
 		log.Fatalf("[main:api.GetPosts] error: %s group_id: %d", err, info.ID)
@@ -206,13 +208,16 @@ func checkSources(info api.Group, group db.Group, countCheckIn int) {
 	for _, item := range posts.Response.Items {
 		if item.IsPinned == 0 && item.Likes.Count > border {
 			if !existRepostByID(&info, &item) {
-				shouldDoRepost(info, group, item, countCheckIn)
+				repostedSuccess := shouldDoRepost(info, group, item, countCheckIn)
+				if repostedSuccess == false {
+					os.Exit(0)
+				}
 			}
 		}
 	}
 }
 
-func checkDestination(group db.Group, countCheckIn int) {
+func checkDestination(group db.Group, countCheckIn *int) {
 	groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 	if err != nil {
 		log.Fatalf("[main:api.GetGroupsInfo] error: %s group_id: %d", err, group.SourceID)
@@ -269,7 +274,7 @@ func main() {
 	}
 	for _, group := range groups {
 		go doRemoveDogs(group.SourceID)
-		checkDestination(group, countCheckIn)
+		checkDestination(group, &countCheckIn)
 	}
 
 	log.Println("done")
