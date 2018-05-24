@@ -206,6 +206,11 @@ func checkSources(info api.Group, group db.Group, countCheckIn *int) {
 
 	border := int(posts.GetMaxCountLikes() * group.Border)
 	for _, item := range posts.Response.Items {
+		// skip posts with links
+		r := regexp.MustCompile(".*\\[club\\d+\\|.*")
+		if r.MatchString(item.Text) {
+			continue
+		}
 		if item.IsPinned == 0 && item.Likes.Count > border {
 			if !existRepostByID(&info, &item) {
 				repostedSuccess := shouldDoRepost(info, group, item, countCheckIn)
