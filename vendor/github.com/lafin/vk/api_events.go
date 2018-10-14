@@ -35,6 +35,7 @@ type Group struct {
 	Type       string `json:"type"`
 }
 
+// DocPreview - struct of json object the DocPreview
 type DocPreview struct {
 	Photo struct {
 		Sizes []struct {

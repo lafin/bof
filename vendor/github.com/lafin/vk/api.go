@@ -137,7 +137,7 @@ func (p *Posts) GetMaxCountLikes() float32 {
 
 // GetUniqueFiles - get lists of files
 func (p *Post) GetUniqueFiles() ([][]byte, []string) {
-	var attachments []string
+	var attachments = make([]string, 0, len(p.Attachments))
 	var files [][]byte
 
 	for _, item := range p.Attachments {

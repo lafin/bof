@@ -3,43 +3,59 @@
 
 [[projects]]
   branch = "master"
+  digest = "1:c505d463d50607205c09212ea7c778790e55a45a01634f558d9890bff18a1549"
   name = "github.com/lafin/go-httpclient"
   packages = ["."]
-  revision = "a79f0d18be1cc85943acd2f799ca384d25a2ef38"
+  pruneopts = ""
+  revision = "02957a045fe1aa8170b3d445ada9772ca5f9cbc4"
 
 [[projects]]
   branch = "master"
+  digest = "1:cc25d8c1ab685ae6ddd20183387dd2d9cfe99d4ba899bf2aeb6353630538f207"
   name = "github.com/lafin/vk"
   packages = ["."]
-  revision = "059d2ce6b90ce552ac2c3d5467993c7cd8bd6722"
+  pruneopts = ""
+  revision = "621a1d7e86e62119e43cb24fa1613ee1b1be8a92"
 
 [[projects]]
+  digest = "1:185f6f7414fce0e9033ea325fa8def71bbe6b989e98c4a3ae3d8243358708052"
   name = "github.com/oliamb/cutter"
   packages = ["."]
-  revision = "5cd9c24de6524b7251ac6b8600b0ba8f43a85963"
-  version = "v0.2.0"
+  pruneopts = ""
+  revision = "de2952ec22155c8e68bf4ac03684b1d1d734b53c"
+  version = "v0.2.2"
 
 [[projects]]
+  digest = "1:75667adcf67cd1f219da0cfc2b4b24da8bcf32b5247e09eaeb2f821fcc30e38f"
   name = "github.com/x1ddos/imgdiff"
   packages = ["."]
+  pruneopts = ""
   revision = "dbe557c868755759335c779e506aa4c93544293d"
   version = "v1.0.0"
 
 [[projects]]
   branch = "v2"
+  digest = "1:f54ba71a035aac92ced3e902d2bff3734a15d1891daff73ec0f90ef236750139"
   name = "gopkg.in/mgo.v2"
   packages = [
     ".",
     "bson",
     "internal/json",
     "internal/sasl",
-    "internal/scram"
+    "internal/scram",
   ]
-  revision = "3f83fa5005286a7fe593b055f0d7771a7dce4655"
+  pruneopts = ""
+  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
 
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "887a6ea27b21097d62ee73fb10d875cb538df26bef0fa523f6511c2563e1fc12"
+  input-imports = [
+    "github.com/lafin/vk",
+    "github.com/oliamb/cutter",
+    "github.com/x1ddos/imgdiff",
+    "gopkg.in/mgo.v2",
+    "gopkg.in/mgo.v2/bson",
+  ]
   solver-name = "gps-cdcl"
   solver-version = 1
