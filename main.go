@@ -25,10 +25,7 @@ func existRepostByID(info *api.Group, item *api.Post) bool {
 	}
 	record := db.Post{}
 	err = post.Find(bson.M{"post": postID}).One(&record)
-	if err != nil {
-		return false
-	}
-	return true
+	return err == nil
 }
 
 func existRepostByFiles(files [][]byte) bool {
@@ -73,9 +70,9 @@ func doRepost(attachments []string, item *api.Post, group *db.Group) (bool, erro
 	message := group.Message
 
 	if len(item.Text) > 0 {
-		r := regexp.MustCompile("(\\n+|\\s+)?#(\\p{L}|\\p{P})+(\\n+|\\s+)?")
+		r := regexp.MustCompile(`(\n+|\s+)?#(\p{L}|\p{P})+(\n+|\s+)?`)
 		item.Text = r.ReplaceAllString(item.Text, " ")
-		r = regexp.MustCompile("(\\n|\\s)+")
+		r = regexp.MustCompile(`(\n|\s)+`)
 		item.Text = r.ReplaceAllString(item.Text, " ")
 		message = strings.Trim(item.Text, " ") + " " + message
 	}
@@ -207,14 +204,14 @@ func checkSources(info api.Group, group db.Group, countCheckIn *int) {
 	border := int(posts.GetMaxCountLikes() * group.Border)
 	for _, item := range posts.Response.Items {
 		// skip posts with links
-		r := regexp.MustCompile(".*\\[club\\d+\\|.*")
+		r := regexp.MustCompile(`.*\[club\d+\|.*`)
 		if r.MatchString(item.Text) {
 			continue
 		}
 		if item.IsPinned == 0 && item.Likes.Count > border {
 			if !existRepostByID(&info, &item) {
 				repostedSuccess := shouldDoRepost(info, group, item, countCheckIn)
-				if repostedSuccess == false {
+				if !repostedSuccess {
 					os.Exit(0)
 				}
 			}
