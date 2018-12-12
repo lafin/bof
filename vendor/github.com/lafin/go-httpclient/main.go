@@ -37,7 +37,7 @@ func Client() *http.Client {
 				Timeout: time.Second * 10,
 			}).Dial,
 			TLSHandshakeTimeout: time.Second * 5,
-			TLSClientConfig:     &tls.Config{InsecureSkipVerify: false},
+			TLSClientConfig:     &tls.Config{InsecureSkipVerify: true},
 			DisableKeepAlives:   true,
 		}
 		cookieJar, err := cookiejar.New(nil)
