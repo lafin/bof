@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:cc25d8c1ab685ae6ddd20183387dd2d9cfe99d4ba899bf2aeb6353630538f207"
+  digest = "1:8e49b20c1ceeacfad572a7184c00ba6130ef7d4820bfcd5a34ec11130be44084"
   name = "github.com/lafin/vk"
   packages = ["."]
   pruneopts = ""
-  revision = "621a1d7e86e62119e43cb24fa1613ee1b1be8a92"
+  revision = "40629b034460870882f5d87661870c4e144b84d0"
 
 [[projects]]
   digest = "1:185f6f7414fce0e9033ea325fa8def71bbe6b989e98c4a3ae3d8243358708052"

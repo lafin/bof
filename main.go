@@ -203,6 +203,10 @@ func checkSources(info api.Group, group db.Group, countCheckIn *int) {
 
 	border := int(posts.GetMaxCountLikes() * group.Border)
 	for _, item := range posts.Response.Items {
+		// skip posts with CopyHistory
+		if len(item.CopyHistory) > 0 {
+			continue
+		}
 		// skip posts with links
 		r := regexp.MustCompile(`.*\[club\d+\|.*`)
 		if r.MatchString(item.Text) {

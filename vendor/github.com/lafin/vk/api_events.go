@@ -67,7 +67,16 @@ func (r *DocPreview) GetSmallPreview() string {
 
 // Post - struct of json object the Item
 type Post struct {
+	ID          int    `json:"id"`
+	FromID      int    `json:"from_id"`
+	OwnerID     int    `json:"owner_id"`
+	Date        int    `json:"date"`
+	MarkedAsAds int    `json:"marked_as_ads"`
+	PostType    string `json:"post_type"`
+	Text        string `json:"text"`
+	IsPinned    int    `json:"is_pinned"`
 	Attachments []struct {
+		Type  string `json:"type"`
 		Video struct {
 			AccessKey   string `json:"access_key"`
 			CanAdd      int    `json:"can_add"`
@@ -85,18 +94,23 @@ type Post struct {
 			Views       int    `json:"views"`
 		} `json:"video"`
 		Photo struct {
-			AccessKey string `json:"access_key"`
-			AlbumID   int    `json:"album_id"`
-			Date      int    `json:"date"`
-			Height    int    `json:"height"`
-			ID        int    `json:"id"`
-			OwnerID   int    `json:"owner_id"`
-			Photo130  string `json:"photo_130"`
-			Photo604  string `json:"photo_604"`
-			Photo75   string `json:"photo_75"`
-			Text      string `json:"text"`
-			UserID    int    `json:"user_id"`
-			Width     int    `json:"width"`
+			ID        int     `json:"id"`
+			AlbumID   int     `json:"album_id"`
+			OwnerID   int     `json:"owner_id"`
+			UserID    int     `json:"user_id"`
+			Photo75   string  `json:"photo_75"`
+			Photo130  string  `json:"photo_130"`
+			Photo604  string  `json:"photo_604"`
+			Photo807  string  `json:"photo_807"`
+			Photo1280 string  `json:"photo_1280"`
+			Width     int     `json:"width"`
+			Height    int     `json:"height"`
+			Text      string  `json:"text"`
+			Date      int     `json:"date"`
+			Lat       float64 `json:"lat"`
+			Long      float64 `json:"long"`
+			PostID    int     `json:"post_id"`
+			AccessKey string  `json:"access_key"`
 		} `json:"photo"`
 		Doc struct {
 			AccessKey string `json:"access_key"`
@@ -110,32 +124,53 @@ type Post struct {
 			Type      int    `json:"type"`
 			URL       string `json:"url"`
 		} `json:"doc"`
-		Type string `json:"type"`
 	} `json:"attachments"`
-	Comments struct {
-		CanPost int `json:"can_post"`
-		Count   int `json:"count"`
-	} `json:"comments"`
-	Date     int `json:"date"`
-	FromID   int `json:"from_id"`
-	ID       int `json:"id"`
-	IsPinned int `json:"is_pinned"`
-	Likes    struct {
-		CanLike    int `json:"can_like"`
-		CanPublish int `json:"can_publish"`
-		Count      int `json:"count"`
-		UserLikes  int `json:"user_likes"`
-	} `json:"likes"`
-	OwnerID    int `json:"owner_id"`
 	PostSource struct {
 		Type string `json:"type"`
 	} `json:"post_source"`
-	PostType string `json:"post_type"`
-	Reposts  struct {
+	Comments struct {
+		Count   int `json:"count"`
+		CanPost int `json:"can_post"`
+	} `json:"comments"`
+	Likes struct {
+		Count      int `json:"count"`
+		UserLikes  int `json:"user_likes"`
+		CanLike    int `json:"can_like"`
+		CanPublish int `json:"can_publish"`
+	} `json:"likes"`
+	Reposts struct {
 		Count        int `json:"count"`
 		UserReposted int `json:"user_reposted"`
 	} `json:"reposts"`
-	Text string `json:"text"`
+	CopyHistory []struct {
+		ID          int    `json:"id"`
+		OwnerID     int    `json:"owner_id"`
+		FromID      int    `json:"from_id"`
+		Date        int    `json:"date"`
+		PostType    string `json:"post_type"`
+		Text        string `json:"text"`
+		Attachments []struct {
+			Type  string `json:"type"`
+			Photo struct {
+				ID        int    `json:"id"`
+				AlbumID   int    `json:"album_id"`
+				OwnerID   int    `json:"owner_id"`
+				UserID    int    `json:"user_id"`
+				Photo75   string `json:"photo_75"`
+				Photo130  string `json:"photo_130"`
+				Photo604  string `json:"photo_604"`
+				Width     int    `json:"width"`
+				Height    int    `json:"height"`
+				Text      string `json:"text"`
+				Date      int    `json:"date"`
+				AccessKey string `json:"access_key"`
+			} `json:"photo"`
+		} `json:"attachments"`
+		PostSource struct {
+			Type     string `json:"type"`
+			Platform string `json:"platform"`
+		} `json:"post_source"`
+	} `json:"copy_history"`
 }
 
 // Posts - struct of json object the Posts
