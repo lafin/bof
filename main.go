@@ -12,6 +12,7 @@ import (
 
 	"github.com/lafin/bof/db"
 	"github.com/lafin/bof/utils"
+	copier "github.com/lafin/copier"
 	api "github.com/lafin/vk"
 	"gopkg.in/mgo.v2/bson"
 )
@@ -162,6 +163,8 @@ func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn 
 
 	reposted := false
 	if attachments != nil {
+		copier.UploadFiles(attachments, to)
+
 		reposted, err = doRepost(attachments, &item, &group)
 		if err == nil {
 			record.Files = files
