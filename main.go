@@ -162,6 +162,10 @@ func shouldDoRepost(info api.Group, group db.Group, item api.Post, countCheckIn 
 
 	reposted := false
 	if attachments != nil {
+		if len(attachments) == 0 {
+			log.Fatalf("[main:item.GetUniqueFiles] error: empty attachments")
+			return false
+		}
 		reposted, err = doRepost(attachments, &item, &group)
 		if err == nil {
 			record.Files = files

@@ -3,6 +3,7 @@ package utils
 import (
 	"bytes"
 	"image"
+
 	// register gif, jpeg, png
 	_ "image/gif"
 	_ "image/jpeg"

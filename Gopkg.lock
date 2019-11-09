@@ -11,11 +11,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:8e49b20c1ceeacfad572a7184c00ba6130ef7d4820bfcd5a34ec11130be44084"
+  digest = "1:e3f432508eb62179118c0b54d07c544a55d1b51fc2b048d8a6ff07dea3df3abf"
   name = "github.com/lafin/vk"
   packages = ["."]
   pruneopts = ""
-  revision = "40629b034460870882f5d87661870c4e144b84d0"
+  revision = "99b088aef9bc39be1de34f3f791bad8a5d6daf6f"
 
 [[projects]]
   digest = "1:185f6f7414fce0e9033ea325fa8def71bbe6b989e98c4a3ae3d8243358708052"
@@ -35,7 +35,7 @@
 
 [[projects]]
   branch = "v2"
-  digest = "1:f54ba71a035aac92ced3e902d2bff3734a15d1891daff73ec0f90ef236750139"
+  digest = "1:e56755c5336ff37d20befca76df29097085c85ea1fe58af746e3df6b815decfa"
   name = "gopkg.in/mgo.v2"
   packages = [
     ".",
@@ -45,7 +45,7 @@
     "internal/scram",
   ]
   pruneopts = ""
-  revision = "9856a29383ce1c59f308dd1cf0363a79b5bef6b5"
+  revision = "a6b53ec6cb22a3699387a57a161566f9402ee85b"
 
 [solve-meta]
   analyzer-name = "dep"

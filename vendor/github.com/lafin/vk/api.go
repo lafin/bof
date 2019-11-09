@@ -148,9 +148,12 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 
 		switch item.Type {
 		case "photo":
-			if len(item.Photo.Photo75) > 0 {
-				photoURL = item.Photo.Photo75
-				attachment = item.Type + strconv.Itoa(item.Photo.OwnerID) + "_" + strconv.Itoa(item.Photo.ID) + "_" + item.Photo.AccessKey
+			for _, size := range item.Photo.Sizes {
+				if size.Type == "s" {
+					photoURL = size.URL
+					attachment = item.Type + strconv.Itoa(item.Photo.OwnerID) + "_" + strconv.Itoa(item.Photo.ID) + "_" + item.Photo.AccessKey
+					break
+				}
 			}
 		case "doc":
 			if len(item.Doc.URL) > 0 {
@@ -169,7 +172,9 @@ func (p *Post) GetUniqueFiles() ([][]byte, []string) {
 		if file != nil {
 			files = append(files, file)
 		}
-		attachments = append(attachments, attachment)
+		if len(attachment) > 0 {
+			attachments = append(attachments, attachment)
+		}
 	}
 	return files, attachments
 }
