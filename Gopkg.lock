@@ -3,11 +3,11 @@
 
 [[projects]]
   branch = "master"
-  digest = "1:c505d463d50607205c09212ea7c778790e55a45a01634f558d9890bff18a1549"
+  digest = "1:c1850dff6e6af0891a9f99dba2551f8a2a1138477193c890c6f2cdf784ab7f78"
   name = "github.com/lafin/go-httpclient"
   packages = ["."]
   pruneopts = ""
-  revision = "02957a045fe1aa8170b3d445ada9772ca5f9cbc4"
+  revision = "da9fec56545fd7e071f7785e9e331cb612a17ccf"
 
 [[projects]]
   branch = "master"
