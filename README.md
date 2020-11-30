@@ -1,8 +1,7 @@
-### Best of ___something___
-[![Build Status](https://travis-ci.org/lafin/bof.svg?branch=master)](https://travis-ci.org/lafin/bof)
+### Best of ___something___ ![backend](https://github.com/lafin/bof/workflows/backend/badge.svg)
 ___
 
-```
-curl -O https://raw.githubusercontent.com/lafin/bof/master/docker-compose.armhf.yml
-$ CLIENT_ID=<...> CLIENT_EMAIL=<...> CLIENT_PASSWORD=<...> docker-compose -f docker-compose.armhf.yml up
+```bash
+$ docker-compose -f infra/services/bof/docker-compose.arm64.yml pull
+$ CLIENT_PASSWORD= DB_PASSWORD= docker-compose -f infra/services/bof/docker-compose.arm64.yml up
 ```
