@@ -1,0 +1,54 @@
+name: backend
+on: push
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - uses: actions/setup-go@v2
+      - name: Test
+        run: |
+          cd $GITHUB_WORKSPACE/backend && go test -timeout=60s -covermode=count -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp ./...
+          cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "_mock.go" > $GITHUB_WORKSPACE/profile.cov
+      - name: Install golangci-lint and goveralls
+        run: |
+          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $GITHUB_WORKSPACE v1.32.0
+          GO111MODULE=off go get -u -v github.com/mattn/goveralls
+      - name: Lint
+        run: cd $GITHUB_WORKSPACE/backend && $GITHUB_WORKSPACE/golangci-lint run --modules-download-mode=readonly
+      - name: Submit coverage
+        run: $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=$GITHUB_WORKSPACE/profile.cov
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  build:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        arch: [x86_64, armhf, arm64]
+        include:
+          - { arch: x86_64,  goarch: amd64,  goarm: "" }
+          - { arch: armhf,   goarch: arm,    goarm: 7 }
+          - { arch: arm64,   goarch: arm64,  goarm: "" }
+    needs: [lint]
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set env variables
+        run: |
+          echo "TAG=$(echo $GITHUB_SHA | head -c7)" >> $GITHUB_ENV
+          echo "REPOSITORY=${REPOSITORY:-$GITHUB_REPOSITORY}" >> $GITHUB_ENV
+          echo "DOCKER_USER=${DOCKER_USER:-$GITHUB_ACTOR}" >> $GITHUB_ENV
+        env:
+          REPOSITORY: ${{ secrets.REPOSITORY }}
+          DOCKER_USER: ${{ secrets.DOCKER_USER }}
+      - name: Build image
+        run: |
+          docker build --build-arg VERSION=$GITHUB_REF:$GITHUB_SHA --build-arg GOARCH=${{ matrix.goarch }} --build-arg GOARM=${{ matrix.goarm }} -t $REPOSITORY-api:${{ matrix.arch }} -f Dockerfile.backend .
+      - name: Publish image
+        if: github.ref == 'refs/heads/master'
+        run: |
+          docker login -u $DOCKER_USER -p ${{ secrets.DOCKER_TOKEN }}
+          docker tag $REPOSITORY-api:${{ matrix.arch }} $REPOSITORY-api:$TAG-${{ matrix.arch }}
+          docker push $REPOSITORY-api
+
+
+
