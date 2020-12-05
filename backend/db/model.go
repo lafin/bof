@@ -27,7 +27,7 @@ type Group struct {
 // GetPosts - ...
 func GetPosts(dbConnect *gorm.DB) ([]Post, error) {
 	var posts []Post
-	result := dbConnect.Where("updated_at > NOW() - INTERVAL '30 days'").Find(&posts)
+	result := dbConnect.Where("created_at > NOW() - INTERVAL '1 month'").Find(&posts)
 	return posts, result.Error
 }
 

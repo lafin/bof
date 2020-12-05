@@ -252,6 +252,7 @@ func main() {
 
 	dbConnect := db.Connect(os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
 
+	dbConnect.Unscoped().Where("created_at < NOW() - INTERVAL '1 month'").Delete(&db.Post{})
 	groups, err := db.GetGroups(dbConnect)
 	if err != nil {
 		log.Fatalf("[main:db.GetGroups] error: %s", err)
