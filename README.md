@@ -2,6 +2,11 @@
 ___
 
 ```bash
-$ docker-compose -f infra/services/bof/docker-compose.arm64.yml pull
-$ CLIENT_PASSWORD= DB_PASSWORD= docker-compose -f infra/services/bof/docker-compose.arm64.yml up
+$ docker-compose -f infra/docker-compose.bof.yml pull
+$ CLIENT_PASSWORD= DB_PASSWORD= docker-compose -f infra/docker-compose.bof.yml up
+```
+
+### go deps
+```sh 
+$ go mod tidy && go get -u
 ```

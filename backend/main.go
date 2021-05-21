@@ -259,7 +259,7 @@ func main() {
 		return
 	}
 	for _, group := range groups {
-		go doRemoveDogs(group.SourceID)
+		doRemoveDogs(group.SourceID)
 		checkDestination(dbConnect, group, &countCheckIn)
 	}
 
