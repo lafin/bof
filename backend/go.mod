@@ -5,7 +5,7 @@ go 1.15
 require (
 	github.com/jackc/pgproto3/v2 v2.0.7 // indirect
 	github.com/joho/godotenv v1.3.0
-	github.com/lafin/vk v0.0.3
+	github.com/lafin/vk v0.0.4
 	github.com/lib/pq v1.10.2
 	github.com/oliamb/cutter v0.2.2
 	github.com/x1ddos/imgdiff v1.0.0
