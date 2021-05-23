@@ -24,6 +24,14 @@ type Group struct {
 	Message  string
 }
 
+// Dog is
+type Dog struct {
+	SourceID  int       `gorm:"uniqueIndex:idx_dog"`
+	UserID    int       `gorm:"uniqueIndex:idx_dog"`
+	CheckedAt time.Time `gorm:"index"`
+	CreatedAt time.Time `gorm:"index"`
+}
+
 // GetPosts - ...
 func GetPosts(dbConnect *gorm.DB) ([]Post, error) {
 	var posts []Post

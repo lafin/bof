@@ -8,6 +8,7 @@ import (
 	"regexp"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/lafin/bof/db"
@@ -73,24 +74,34 @@ func doRepost(attachments []string, item *api.Post, group *db.Group) (bool, erro
 	return repost.Response.PostID > 0, err
 }
 
-func doRemoveDogs(groupID int) {
+func doRemoveDogs(dbConnect *gorm.DB, groupID int) {
 	start := 0
 	offset := 1000
-
-	totalUsers := 0
-	var usersList []int
-
 	for {
 		users, err := api.GetListUsersofGroup(groupID, start, offset)
 		if err != nil {
 			log.Fatalf("[doRemoveDogs] error: %s", err)
 			return
 		}
-
-		totalUsers += len(users.Response.Items)
 		for _, user := range users.Response.Items {
-			if user.IsDeleted() || user.IsBanned() {
-				usersList = append(usersList, user.ID)
+			if !(user.IsDeleted() || user.IsBanned()) {
+				continue
+			}
+			dog := db.Dog{}
+			result := dbConnect.Where("source_id = ? AND user_id = ?", groupID, user.ID).First(&dog)
+			if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+				result = dbConnect.Create(&db.Dog{
+					SourceID:  groupID,
+					UserID:    user.ID,
+					CheckedAt: time.Now(),
+				})
+			} else {
+				dog.CheckedAt = time.Now()
+				result = dbConnect.Where("source_id = ? AND user_id = ?", groupID, user.ID).Updates(&dog)
+			}
+			if result.Error != nil {
+				log.Fatalf("[doRemoveDogs] error: %s", result.Error)
+				return
 			}
 		}
 		if len(users.Response.Items) < offset {
@@ -100,21 +111,25 @@ func doRemoveDogs(groupID int) {
 		}
 	}
 
-	percentBadUsers := float32(len(usersList)) / float32(totalUsers)
-	if percentBadUsers > minPercentOfBadUsers {
-		count := int(float32(totalUsers) * percentBadUsers)
-		for index := 0; index < count; index++ {
-			userID := usersList[index]
-			status, err := api.RemoveUserFromGroup(groupID, userID)
-			if err != nil {
-				log.Fatalf("[doRemoveDogs] error: %s", err)
-				return
-			}
-			if status.Response != 1 {
-				break
-			}
-			log.Printf("[doRemoveDogs] user_id: %d group_id: %d", userID, groupID)
+	dbConnect.Unscoped().Where("checked_at < NOW() - INTERVAL '1 day'").Delete(&db.Dog{})
+
+	dogs := []db.Dog{}
+	result := dbConnect.Where("created_at < NOW() - INTERVAL '1 month'").Find(&dogs)
+	if result.Error != nil {
+		log.Fatalf("[doRemoveDogs] error: %s", result.Error)
+		return
+	}
+	for _, dog := range dogs {
+		status, err := api.RemoveUserFromGroup(dog.SourceID, dog.UserID)
+		if err != nil {
+			log.Fatalf("[doRemoveDogs] error: %s", err)
+			return
 		}
+		if status.Response != 1 {
+			break
+		}
+		log.Printf("[doRemoveDogs] group_id: %d user_id: %d", dog.SourceID, dog.UserID)
+		dbConnect.Unscoped().Where("source_id = ? AND user_id = ?", dog.SourceID, dog.UserID).Delete(&db.Dog{})
 	}
 }
 
@@ -237,7 +252,6 @@ func checkDestination(dbConnect *gorm.DB, group db.Group, countCheckIn *int) {
 }
 
 const maxCountCheckInOneTime int = 2
-const minPercentOfBadUsers float32 = 0.01
 
 func main() {
 	_ = godotenv.Load()
@@ -251,7 +265,6 @@ func main() {
 	}
 
 	dbConnect := db.Connect(os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
-
 	dbConnect.Unscoped().Where("created_at < NOW() - INTERVAL '1 month'").Delete(&db.Post{})
 	groups, err := db.GetGroups(dbConnect)
 	if err != nil {
@@ -259,7 +272,7 @@ func main() {
 		return
 	}
 	for _, group := range groups {
-		doRemoveDogs(group.SourceID)
+		doRemoveDogs(dbConnect, group.SourceID)
 		checkDestination(dbConnect, group, &countCheckIn)
 	}
 
