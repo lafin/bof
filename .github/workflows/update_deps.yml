@@ -1,0 +1,21 @@
+name: update dependencies
+on:
+  workflow_dispatch:
+  schedule:
+  - cron: "0 0 * * 0"
+jobs:
+  update_deps:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/setup-go@v2
+    - name: Go dependencies
+      run: |
+        cd backend
+        go mod tidy && go get -u
+        go build -o app . && rm -rf ./app
+    - uses: peter-evans/create-pull-request@v3
+      with:
+        commit-message: "feat: bump deps"
+        branch: "update_deps"
+        title: "feat: bump deps"
