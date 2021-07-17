@@ -19,3 +19,10 @@ jobs:
         commit-message: "feat: bump deps"
         branch: "update_deps"
         title: "feat: bump deps"
+        labels: automated pr
+        assignees: lafin
+        reviewers: lafin
+        team-reviewers: |
+          owners
+          maintainers
+        milestone: 1
