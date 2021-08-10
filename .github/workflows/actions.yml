@@ -12,18 +12,19 @@ jobs:
     steps:
       - uses: actions/checkout@v2
       - uses: actions/setup-go@v2
+      - uses: golangci/golangci-lint-action@v2
+        with:
+          version: v1.41
+          working-directory: backend
+          args: --modules-download-mode=readonly
       - name: Test
         run: |
-          cd $GITHUB_WORKSPACE/backend && go test -timeout=60s -covermode=count -coverprofile=$GITHUB_WORKSPACE/profile.cov_tmp ./...
-          cat $GITHUB_WORKSPACE/profile.cov_tmp | grep -v "_mock.go" > $GITHUB_WORKSPACE/profile.cov
-      - name: Install golangci-lint and goveralls
-        run: |
-          curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $GITHUB_WORKSPACE v1.32.0
-          GO111MODULE=off go get -u -v github.com/mattn/goveralls
-      - name: Lint
-        run: cd $GITHUB_WORKSPACE/backend && $GITHUB_WORKSPACE/golangci-lint run --modules-download-mode=readonly
+          cd ${{ github.workspace }}/backend && go test -timeout=60s -covermode=count -coverprofile=${{ github.workspace }}/profile.cov_tmp ./...
+          cat ${{ github.workspace }}/profile.cov_tmp | grep -v "_mock.go" > ${{ github.workspace }}/profile.cov
       - name: Submit coverage
-        run: $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=$GITHUB_WORKSPACE/profile.cov
+        run: |
+          GO111MODULE=off go get -u -v github.com/mattn/goveralls
+          $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=${{ github.workspace }}/profile.cov
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build:
