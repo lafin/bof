@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-go@v2
       - uses: golangci/golangci-lint-action@v2
         with:
-          version: v1.41
+          version: latest
           working-directory: backend
           args: --modules-download-mode=readonly
       - name: Test
