@@ -6,6 +6,7 @@ require (
 	github.com/jackc/pgconn v1.10.1 // indirect
 	github.com/jackc/pgproto3/v2 v2.2.0 // indirect
 	github.com/jackc/pgtype v1.9.0 // indirect
+	github.com/jackc/pgx/v4 v4.14.0 // indirect
 	github.com/jinzhu/now v1.1.3 // indirect
 	github.com/joho/godotenv v1.4.0
 	github.com/lafin/vk v0.0.5
