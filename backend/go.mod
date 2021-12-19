@@ -10,7 +10,7 @@ require (
 	github.com/lib/pq v1.10.4
 	github.com/oliamb/cutter v0.2.2
 	github.com/x1ddos/imgdiff v1.0.0
-	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e // indirect
+	golang.org/x/crypto v0.0.0-20211215153901-e495a2d5b3d3 // indirect
 	golang.org/x/image v0.0.0-20200927104501-e162460cd6b5 // indirect
 	gorm.io/driver/postgres v1.2.3
 	gorm.io/gorm v1.22.4
