@@ -2,7 +2,6 @@ package main
 
 import (
 	"errors"
-	"log"
 	"net/url"
 	"os"
 	"regexp"
@@ -10,12 +9,22 @@ import (
 	"strings"
 	"time"
 
+	"github.com/go-pkgz/lgr"
 	"github.com/joho/godotenv"
 	"github.com/lafin/bof/db"
 	"github.com/lafin/bof/misc"
 	api "github.com/lafin/vk"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/push"
 	"gorm.io/gorm"
 )
+
+var (
+	taskErrors = prometheus.NewCounterVec(prometheus.CounterOpts{
+		Name: "lafin_bof_errors",
+	}, []string{"error"})
+)
+var l = lgr.New(lgr.Msec, lgr.Debug, lgr.CallerFile, lgr.CallerFunc)
 
 func existRepostByID(dbConnect *gorm.DB, postID string) bool {
 	result := dbConnect.Where("post = ?", postID).Take(&db.Post{})
@@ -36,7 +45,8 @@ func existRepostByFiles(dbConnect *gorm.DB, files [][]byte) bool {
 					if len(file) != 0 {
 						percent, err := misc.Compare(storedFile, file)
 						if err != nil {
-							log.Fatalf("[existRepostByFiles] error: %s", err)
+							l.Logf("FATAL existRepostByFiles, %v", err)
+							taskErrors.With(prometheus.Labels{"error": "exist_repost_by_files"}).Inc()
 						} else if percent < 0.05 {
 							return true
 						}
@@ -80,8 +90,8 @@ func doRemoveDogs(dbConnect *gorm.DB, groupID int) {
 	for {
 		users, err := api.GetListUsersofGroup(groupID, start, offset)
 		if err != nil {
-			log.Fatalf("[doRemoveDogs] error: %s", err)
-			return
+			l.Logf("FATAL api.GetListUsersofGroup, %v", err)
+			taskErrors.With(prometheus.Labels{"error": "get_list_usersof_group"}).Inc()
 		}
 		for _, user := range users.Response.Items {
 			if !(user.IsDeleted() || user.IsBanned()) {
@@ -100,8 +110,8 @@ func doRemoveDogs(dbConnect *gorm.DB, groupID int) {
 				result = dbConnect.Where("source_id = ? AND user_id = ?", groupID, user.ID).Updates(&dog)
 			}
 			if result.Error != nil {
-				log.Fatalf("[doRemoveDogs] error: %s", result.Error)
-				return
+				l.Logf("FATAL doRemoveDogs, %v", result.Error)
+				taskErrors.With(prometheus.Labels{"error": "do_remove_dogs"}).Inc()
 			}
 		}
 		if len(users.Response.Items) < offset {
@@ -116,19 +126,19 @@ func doRemoveDogs(dbConnect *gorm.DB, groupID int) {
 	dogs := []db.Dog{}
 	result := dbConnect.Where("created_at < NOW() - INTERVAL '1 month'").Find(&dogs)
 	if result.Error != nil {
-		log.Fatalf("[doRemoveDogs] error: %s", result.Error)
-		return
+		l.Logf("FATAL findDogs, %v", result.Error)
+		taskErrors.With(prometheus.Labels{"error": "find_dogs"}).Inc()
 	}
 	for _, dog := range dogs {
 		status, err := api.RemoveUserFromGroup(dog.SourceID, dog.UserID)
 		if err != nil {
-			log.Fatalf("[doRemoveDogs] error: %s", err)
-			return
+			l.Logf("FATAL api.RemoveUserFromGroup, %v", err)
+			taskErrors.With(prometheus.Labels{"error": "remove_user_from_group"}).Inc()
 		}
 		if status.Response != 1 {
 			break
 		}
-		log.Printf("[doRemoveDogs] group_id: %d user_id: %d", dog.SourceID, dog.UserID)
+		l.Logf("INFO doRemoveDogs group_id: %d user_id: %d", dog.SourceID, dog.UserID)
 		dbConnect.Unscoped().Where("source_id = ? AND user_id = ?", dog.SourceID, dog.UserID).Delete(&db.Dog{})
 	}
 }
@@ -145,8 +155,8 @@ func shouldDoRepost(dbConnect *gorm.DB, info api.Group, group db.Group, item api
 	}
 	result := dbConnect.Create(record)
 	if result.Error != nil {
-		log.Fatalf("[main:post.Insert] error: %s", result.Error)
-		return false
+		l.Logf("FATAL post.Insert, %v", result.Error)
+		taskErrors.With(prometheus.Labels{"error": "insert"}).Inc()
 	}
 
 	files, attachments := item.GetUniqueFiles()
@@ -158,8 +168,8 @@ func shouldDoRepost(dbConnect *gorm.DB, info api.Group, group db.Group, item api
 	reposted := false
 	if attachments != nil {
 		if len(attachments) == 0 {
-			log.Fatalf("[main:item.GetUniqueFiles] error: empty attachments")
-			return false
+			l.Logf("FATAL item.GetUniqueFiles, empty attachments")
+			taskErrors.With(prometheus.Labels{"error": "get_unique_files"}).Inc()
 		}
 		var err error
 		reposted, err = doRepost(attachments, &item, &group)
@@ -167,8 +177,8 @@ func shouldDoRepost(dbConnect *gorm.DB, info api.Group, group db.Group, item api
 			record.Files = files
 			result = dbConnect.Where("post = ?", postID).Updates(&record)
 			if result.Error != nil {
-				log.Fatalf("[main:post.Update] error: %s", result.Error)
-				return false
+				l.Logf("FATAL post.Update, %v", result.Error)
+				taskErrors.With(prometheus.Labels{"error": "update"}).Inc()
 			}
 		} else {
 			result = dbConnect.Unscoped().Where("post = ?", postID).Delete(&db.Post{})
@@ -176,19 +186,19 @@ func shouldDoRepost(dbConnect *gorm.DB, info api.Group, group db.Group, item api
 		}
 
 		if err != nil {
-			log.Fatalf("[main:doRepost] error: %s post_id: %s", err, postID)
-			return false
+			l.Logf("FATAL doRepost, %v post_id: %s", err, postID)
+			taskErrors.With(prometheus.Labels{"error": "do_repost"}).Inc()
 		}
 	}
 
 	if reposted {
 		*countCheckIn++
-		log.Printf("[main] reposted: %s", postID)
+		l.Logf("INFO reposted post_id: %s", postID)
 	} else {
-		log.Printf("[main] skipped: %s", postID)
+		l.Logf("INFO skipped post_id: %s", postID)
 	}
 	if *countCheckIn == maxCountCheckInOneTime {
-		log.Printf("[main] interrupted: %s", postID)
+		l.Logf("INFO interrupted post_id: %s", postID)
 		return false
 	}
 
@@ -198,8 +208,8 @@ func shouldDoRepost(dbConnect *gorm.DB, info api.Group, group db.Group, item api
 func checkSources(dbConnect *gorm.DB, info api.Group, group db.Group, countCheckIn *int) {
 	posts, err := api.GetPosts(strconv.Itoa(info.ID), "50")
 	if err != nil {
-		log.Fatalf("[main:api.GetPosts] error: %s group_id: %d", err, info.ID)
-		return
+		l.Logf("FATAL api.GetPosts, %v group_id: %d", err, info.ID)
+		taskErrors.With(prometheus.Labels{"error": "get_posts"}).Inc()
 	}
 
 	border := int(posts.GetMaxCountLikes() * group.Border)
@@ -218,7 +228,7 @@ func checkSources(dbConnect *gorm.DB, info api.Group, group db.Group, countCheck
 			if !existRepostByID(dbConnect, postID) {
 				repostedSuccess := shouldDoRepost(dbConnect, info, group, item, countCheckIn)
 				if !repostedSuccess {
-					os.Exit(0)
+					return
 				}
 			}
 		}
@@ -228,8 +238,8 @@ func checkSources(dbConnect *gorm.DB, info api.Group, group db.Group, countCheck
 func checkDestination(dbConnect *gorm.DB, group db.Group, countCheckIn *int) {
 	groupsInfo, err := api.GetGroupsInfo(strconv.Itoa(group.SourceID), "links")
 	if err != nil {
-		log.Fatalf("[main:api.GetGroupsInfo] error: %s group_id: %d", err, group.SourceID)
-		return
+		l.Logf("FATAL api.GetGroupsInfo, %v group_id: %d", err, group.SourceID)
+		taskErrors.With(prometheus.Labels{"error": "get_groups_info"}).Inc()
 	}
 
 	var ids []string
@@ -242,8 +252,8 @@ func checkDestination(dbConnect *gorm.DB, group db.Group, countCheckIn *int) {
 
 	groupsInfo, err = api.GetGroupsInfo(strings.Join(ids, ","), "")
 	if err != nil {
-		log.Fatalf("[main:api.GetGroupsInfo] error: %s", err)
-		return
+		l.Logf("FATAL api.GetGroupsInfo, %v", err)
+		taskErrors.With(prometheus.Labels{"error": "get_groups_info"}).Inc()
 	}
 
 	for _, info := range groupsInfo.Response {
@@ -257,24 +267,31 @@ func main() {
 	_ = godotenv.Load()
 	countCheckIn := 0
 
-	log.Println("start")
+	registry := prometheus.NewRegistry()
+	registry.MustRegister(taskErrors)
+	pusher := push.New("http://s2.lafin.me:9091", "bof").Gatherer(registry)
+
+	l.Logf("DEBUG start")
 	_, err := api.GetAccessToken(os.Getenv("CLIENT_ID"), os.Getenv("CLIENT_EMAIL"), os.Getenv("CLIENT_PASSWORD"))
 	if err != nil {
-		log.Fatalf("[main:api.GetAccessToken] error: %s", err)
-		return
+		l.Logf("FATAL api.GetAccessToken, %v", err)
+		taskErrors.With(prometheus.Labels{"error": "get_access_token"}).Inc()
 	}
 
 	dbConnect := db.Connect(os.Getenv("DB_HOST"), os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD"), os.Getenv("DB_NAME"))
 	dbConnect.Unscoped().Where("created_at < NOW() - INTERVAL '1 month'").Delete(&db.Post{})
 	groups, err := db.GetGroups(dbConnect)
 	if err != nil {
-		log.Fatalf("[main:db.GetGroups] error: %s", err)
-		return
+		l.Logf("FATAL db.GetGroups error, %v", err)
+		taskErrors.With(prometheus.Labels{"error": "get_groups"}).Inc()
 	}
 	for _, group := range groups {
 		doRemoveDogs(dbConnect, group.SourceID)
 		checkDestination(dbConnect, group, &countCheckIn)
 	}
 
-	log.Println("done")
+	l.Logf("DEBUG done")
+	if err := pusher.Push(); err != nil {
+		l.Logf("ERROR could not push to Pushgateway, %v", err)
+	}
 }

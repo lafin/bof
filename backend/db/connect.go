@@ -2,12 +2,14 @@ package db
 
 import (
 	"fmt"
-	"log"
 
+	"github.com/go-pkgz/lgr"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
 )
+
+var l = lgr.New(lgr.Msec, lgr.Debug, lgr.CallerFile, lgr.CallerFunc)
 
 // Connect - connection to a db
 func Connect(dbHost, dbUser, dbPassword, dbName string) *gorm.DB {
@@ -15,11 +17,11 @@ func Connect(dbHost, dbUser, dbPassword, dbName string) *gorm.DB {
 		Logger: logger.Default.LogMode(logger.Silent),
 	})
 	if err != nil {
-		log.Fatalf("[ERROR] failed to connect database, %v", err)
+		l.Logf("FATAL failed to connect database, %v", err)
 	}
 	err = db.AutoMigrate(&Group{}, &Post{}, &Dog{})
 	if err != nil {
-		log.Fatalf("[ERROR] db migration, %v", err)
+		l.Logf("FATAL db migration, %v", err)
 	}
 	return db
 }
