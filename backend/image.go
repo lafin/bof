@@ -1,5 +1,4 @@
-// Package misc handle work with misc
-package misc
+package main
 
 import (
 	"bytes"

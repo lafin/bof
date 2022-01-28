@@ -1,12 +1,29 @@
-// Package db handle work with db
-package db
+package main
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/lib/pq"
+	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+	"gorm.io/gorm/logger"
 )
+
+// Connect - connection to a db
+func Connect(dbHost, dbUser, dbPassword, dbName string) *gorm.DB {
+	db, err := gorm.Open(postgres.Open(fmt.Sprintf("host=%s user=%s password=%s dbname=%s", dbHost, dbUser, dbPassword, dbName)), &gorm.Config{
+		Logger: logger.Default.LogMode(logger.Silent),
+	})
+	if err != nil {
+		l.Logf("FATAL failed to connect database, %v", err)
+	}
+	err = db.AutoMigrate(&Group{}, &Post{}, &Dog{})
+	if err != nil {
+		l.Logf("FATAL db migration, %v", err)
+	}
+	return db
+}
 
 // Post is
 type Post struct {
@@ -30,13 +47,6 @@ type Dog struct {
 	UserID    int       `gorm:"uniqueIndex:idx_dog"`
 	CheckedAt time.Time `gorm:"index"`
 	CreatedAt time.Time `gorm:"index"`
-}
-
-// GetPosts - ...
-func GetPosts(dbConnect *gorm.DB) ([]Post, error) {
-	var posts []Post
-	result := dbConnect.Where("created_at > NOW() - INTERVAL '1 month'").Find(&posts)
-	return posts, result.Error
 }
 
 // GetGroups - ...
