@@ -25,4 +25,5 @@ func pushMetrics() {
 	if err := pusher.Push(); err != nil {
 		l.Logf("ERROR could not push to Pushgateway, %v", err)
 	}
+	taskErrors.Reset()
 }
