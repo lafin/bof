@@ -6,7 +6,7 @@ require (
 	github.com/go-pkgz/lgr v0.10.4
 	github.com/joho/godotenv v1.4.0
 	github.com/lafin/vk v0.0.6
-	github.com/lib/pq v1.10.6
+	github.com/lib/pq v1.10.7
 	github.com/oliamb/cutter v0.2.2
 	github.com/prometheus/client_golang v1.13.0
 	github.com/x1ddos/imgdiff v1.0.0
@@ -35,7 +35,7 @@ require (
 	github.com/prometheus/procfs v0.8.0 // indirect
 	golang.org/x/crypto v0.0.0-20220829220503-c86fa9a7ed90 // indirect
 	golang.org/x/image v0.0.0-20200927104501-e162460cd6b5 // indirect
-	golang.org/x/sys v0.0.0-20220829200755-d48e67d00261 // indirect
+	golang.org/x/sys v0.0.0-20220909162455-aba9fc2a8ff2 // indirect
 	golang.org/x/text v0.3.7 // indirect
 	google.golang.org/protobuf v1.28.1 // indirect
 )
