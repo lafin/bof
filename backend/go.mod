@@ -8,10 +8,10 @@ require (
 	github.com/lafin/vk v0.0.6
 	github.com/lib/pq v1.10.7
 	github.com/oliamb/cutter v0.2.2
-	github.com/prometheus/client_golang v1.13.0
+	github.com/prometheus/client_golang v1.13.1
 	github.com/x1ddos/imgdiff v1.0.0
 	gorm.io/driver/postgres v1.4.5
-	gorm.io/gorm v1.24.1-0.20221019064659-5dd2bb482755
+	gorm.io/gorm v1.24.1
 )
 
 require (
