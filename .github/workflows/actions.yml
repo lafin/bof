@@ -23,7 +23,7 @@ jobs:
           cat ${{ github.workspace }}/profile.cov_tmp | grep -v "_mock.go" > ${{ github.workspace }}/profile.cov
       - name: Submit coverage
         run: |
-          GO111MODULE=off go get -u -v github.com/mattn/goveralls
+          go get -u -v github.com/mattn/goveralls
           $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=${{ github.workspace }}/profile.cov
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
