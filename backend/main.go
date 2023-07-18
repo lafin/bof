@@ -108,9 +108,8 @@ func doRemoveDogs(dbConnect *gorm.DB, groupID int) {
 		}
 		if len(users.Response.Items) < offset {
 			break
-		} else {
-			start += offset
 		}
+		start += offset
 	}
 
 	dbConnect.Unscoped().Where("checked_at < NOW() - INTERVAL '1 day'").Delete(&Dog{})
