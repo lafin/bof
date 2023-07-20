@@ -19,12 +19,13 @@ jobs:
           args: --modules-download-mode=readonly
       - name: Test
         run: |
-          cd ${{ github.workspace }}/backend && go test -timeout=60s -covermode=count -coverprofile=${{ github.workspace }}/profile.cov_tmp ./...
-          cat ${{ github.workspace }}/profile.cov_tmp | grep -v "_mock.go" > ${{ github.workspace }}/profile.cov
+          cd ${{ github.workspace }}/backend
+          go test -timeout=60s -race -covermode atomic -coverprofile=covprofile -coverpkg=./...
       - name: Submit coverage
         run: |
+          cd ${{ github.workspace }}/backend
           go install github.com/mattn/goveralls@latest
-          $(go env GOPATH)/bin/goveralls -service="github" -coverprofile=${{ github.workspace }}/profile.cov
+          $(go env GOPATH)/bin/goveralls -service=github -coverprofile=covprofile
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   build:
