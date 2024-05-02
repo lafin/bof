@@ -56,7 +56,7 @@ func doRepost(attachments []string, item *api.Post, group *Group) (bool, error) 
 	to := group.SourceID
 	message := group.Message
 
-	if len(item.Text) > 0 {
+	if item.Text != "" {
 		r := regexp.MustCompile(`(\n+|\s+)?#(\p{L}|\p{P})+(\n+|\s+)?`)
 		item.Text = r.ReplaceAllString(item.Text, " ")
 		r = regexp.MustCompile(`(\n|\s)+`)

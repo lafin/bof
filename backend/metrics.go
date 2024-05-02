@@ -16,14 +16,18 @@ var (
 )
 
 func metrics(url, job string) {
-	registry := prometheus.NewRegistry()
-	registry.MustRegister(taskErrors)
-	pusher = push.New(url, job).Gatherer(registry)
+	if url != "" && job != "" {
+		registry := prometheus.NewRegistry()
+		registry.MustRegister(taskErrors)
+		pusher = push.New(url, job).Gatherer(registry)
+	}
 }
 
 func pushMetrics() {
-	if err := pusher.Push(); err != nil {
-		l.Logf("ERROR could not push to Pushgateway, %v", err)
+	if pusher != nil {
+		if err := pusher.Push(); err != nil {
+			l.Logf("ERROR could not push to Pushgateway, %v", err)
+		}
+		taskErrors.Reset()
 	}
-	taskErrors.Reset()
 }
